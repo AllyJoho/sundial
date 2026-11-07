@@ -1,6 +1,6 @@
 // Automated checks for the day logic. Run with: npm test
 import { describe, expect, it } from 'vitest';
-import { buildTimeline, getDayState } from './day';
+import { buildTimeline, getDayState, planStartChange } from './day';
 import type { Session } from './types';
 
 const H = 3600_000;
@@ -54,5 +54,24 @@ describe('buildTimeline', () => {
   it('ignores tiny gaps from switching activities', () => {
     const items = buildTimeline([act(0, H), act(H + 30_000, 2 * H)], 0, 2 * H);
     expect(items.every((i) => i.type === 'session')).toBe(true);
+  });
+});
+
+describe('planStartChange', () => {
+  const M = 60_000;
+  const cls = act(0, 30 * M);
+  const hw = { ...act(30 * M, null), id: 'hw' };
+
+  it('changes nothing when the new start does not overlap', () => {
+    expect(planStartChange([cls, hw], hw, 40 * M)).toEqual({ trim: [], remove: [] });
+  });
+
+  it('shortens the previous activity when moving the start earlier', () => {
+    expect(planStartChange([cls, hw], hw, 10 * M)).toEqual({ trim: [cls], remove: [] });
+  });
+
+  it('removes activities that are completely covered', () => {
+    const snack = { ...act(20 * M, 30 * M), id: 'snack' };
+    expect(planStartChange([cls, snack, hw], hw, 10 * M)).toEqual({ trim: [cls], remove: [snack] });
   });
 });

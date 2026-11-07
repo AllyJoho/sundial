@@ -1,5 +1,6 @@
 // The app shell: loads data, works out the current "day", and shows one of three tabs.
 import { useMemo, useState } from 'react';
+import { ErrorBanner } from './components/ErrorBanner';
 import { getDayState } from './day';
 import { useLibrary, useRecentSessions } from './hooks';
 import { ActivitiesScreen } from './screens/ActivitiesScreen';
@@ -18,6 +19,7 @@ export function App() {
 
   return (
     <div className="app">
+      <ErrorBanner />
       <main>
         {tab === 'now' && <NowScreen lib={lib} sessions={sessions} day={day} />}
         {tab === 'today' && <TodayScreen lib={lib} sessions={sessions} day={day} />}

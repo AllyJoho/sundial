@@ -1,8 +1,18 @@
 // Everything that changes data goes through these functions.
 import { db } from './db';
+import { planStartChange } from './day';
 import type { Activity, Category, Session, SleepType } from './types';
 
-const newId = () => crypto.randomUUID();
+/**
+ * A unique id for each new thing we save.
+ * crypto.randomUUID only exists on https:// (or localhost), so when testing on a phone over
+ * home Wi-Fi (http://192.168…) we fall back to building one from random numbers.
+ */
+function newId(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 /** The session that's currently running (no end time), if any. Only one runs at a time. */
 export async function getRunning(): Promise<Session | undefined> {
@@ -89,4 +99,20 @@ export async function createCategory(input: Pick<Category, 'name' | 'color'> & P
 
 export async function updateCategory(id: string, changes: Partial<Category>) {
   await db.categories.update(id, changes);
+}
+
+/**
+ * Change when a session started (e.g. "I actually started 20 minutes ago").
+ * Anything earlier that overlaps is shortened, or removed if it's fully covered.
+ */
+export async function changeStart(sessionId: string, newStart: number) {
+  await db.transaction('rw', db.sessions, async () => {
+    const target = await db.sessions.get(sessionId);
+    if (!target) return;
+    const nearby = await db.sessions.where('start').below(target.start).toArray();
+    const plan = planStartChange(nearby, target, newStart);
+    for (const s of plan.trim) await db.sessions.update(s.id, { end: newStart });
+    await db.sessions.bulkDelete(plan.remove.map((s) => s.id));
+    await db.sessions.update(sessionId, { start: newStart });
+  });
 }

@@ -68,3 +68,27 @@ export function buildTimeline(sessions: Session[], windowStart: number, windowEn
   if (windowEnd - cursor >= MIN_GAP_MS) items.push({ type: 'gap', start: cursor, end: windowEnd });
   return items;
 }
+
+export interface StartChangePlan {
+  /** Earlier sessions that will be shortened to end at the new start time. */
+  trim: Session[];
+  /** Sessions completely covered by the new start time, which will be removed. */
+  remove: Session[];
+}
+
+/**
+ * Moving a session's start earlier can overlap whatever came before it.
+ * Example: Class 2:00–2:30, then Homework started at 2:30. You say Homework really started at 2:10,
+ * so Class gets shortened to 2:00–2:10. This works out what would change, so we can show it first.
+ */
+export function planStartChange(sessions: Session[], target: Session, newStart: number): StartChangePlan {
+  const plan: StartChangePlan = { trim: [], remove: [] };
+  for (const s of sessions) {
+    if (s.id === target.id || s.start >= target.start) continue;
+    const end = s.end ?? target.start;
+    if (end <= newStart) continue; // no overlap
+    if (s.start >= newStart) plan.remove.push(s);
+    else plan.trim.push(s);
+  }
+  return plan;
+}

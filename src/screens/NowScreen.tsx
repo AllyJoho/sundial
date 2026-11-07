@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { logPastSleep, quickAddAndStart, startActivity, startSleep, stopRunning, wakeUp } from '../actions';
 import { activityGroups } from '../components/ActivityPicker';
 import { Sheet } from '../components/Sheet';
+import { StartTimeEditor } from '../components/StartTimeEditor';
 import type { DayState } from '../day';
 import { formatClock, formatDayTime, formatDuration, fromLocalInput, toLocalInput } from '../format';
 import { useNow, type Library } from '../hooks';
@@ -15,6 +16,7 @@ export function NowScreen({ lib, sessions, day }: { lib: Library; sessions: Sess
   const [sleepChoice, setSleepChoice] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [quick, setQuick] = useState('');
+  const [editStart, setEditStart] = useState(false);
 
   const running = useMemo(() => sessions.find((s) => s.end === null), [sessions]);
   const lastEnded = useMemo(
@@ -60,7 +62,9 @@ export function NowScreen({ lib, sessions, day }: { lib: Library; sessions: Sess
         <section className="card now-card sleeping">
           <div className="now-label">{running.sleepType === 'nap' ? '💤 Napping' : '🌙 Sleeping'}</div>
           <div className="now-clock">{formatClock(now - running.start)}</div>
-          <div className="muted">since {formatDayTime(running.start)}</div>
+          <button className="since-btn" onClick={() => setEditStart(true)}>
+            since {formatDayTime(running.start)} <span className="since-edit">· change</span>
+          </button>
           <button className="btn big primary" onClick={wakeUp}>
             {running.sleepType === 'nap' ? "I'm up" : 'Good morning ☀️'}
           </button>
@@ -71,7 +75,9 @@ export function NowScreen({ lib, sessions, day }: { lib: Library; sessions: Sess
             {lib.sessionEmoji(running)} {lib.sessionLabel(running)}
           </div>
           <div className="now-clock">{formatClock(now - running.start)}</div>
-          <div className="muted">since {formatDayTime(running.start)}</div>
+          <button className="since-btn" onClick={() => setEditStart(true)}>
+            since {formatDayTime(running.start)} <span className="since-edit">· change</span>
+          </button>
           <button className="btn" onClick={() => stopRunning()}>
             Stop
           </button>
@@ -122,6 +128,10 @@ export function NowScreen({ lib, sessions, day }: { lib: Library; sessions: Sess
             </button>
           </div>
         </>
+      )}
+
+      {editStart && running && (
+        <StartTimeEditor lib={lib} session={running} sessions={sessions} onClose={() => setEditStart(false)} />
       )}
 
       {sleepChoice && (
