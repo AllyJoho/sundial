@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
-import type { Activity, Category, Session } from './types';
+import { colorVar, inkVar } from './palette';
+import { DEFAULT_SETTINGS, type Activity, type Category, type DayReview, type Goal, type Routine, type Session, type Settings } from './types';
 
 /** The current time, updated every `intervalMs`. Used for running timers. */
 export function useNow(intervalMs = 1000) {
@@ -21,16 +22,30 @@ export function useNow(intervalMs = 1000) {
   return now;
 }
 
-const RECENT_WINDOW_MS = 45 * 24 * 3600_000;
+/**
+ * Every session, oldest first. Even a year of heavy use is only several thousand small records,
+ * which is fine to keep in memory. (If it ever gets slow, this is the place to load less.)
+ */
+export function useSessions(): Session[] | undefined {
+  return useLiveQuery(() => db.sessions.orderBy('start').toArray());
+}
 
-/** Sessions from roughly the last 45 days (enough for today's day + recents), plus anything still running. */
-export function useRecentSessions(): Session[] | undefined {
-  return useLiveQuery(async () => {
-    const since = Date.now() - RECENT_WINDOW_MS;
-    const recent = await db.sessions.where('start').above(since).toArray();
-    const running = await db.sessions.filter((s) => s.end === null && s.start <= since).toArray();
-    return [...running, ...recent];
-  });
+export function useReviews(): DayReview[] | undefined {
+  return useLiveQuery(() => db.reviews.toArray());
+}
+
+export function useRoutines(): Routine[] | undefined {
+  return useLiveQuery(async () => (await db.routines.toArray()).sort((a, b) => a.createdAt - b.createdAt));
+}
+
+export function useGoals(): Goal[] | undefined {
+  return useLiveQuery(() => db.goals.toArray());
+}
+
+/** Settings, filled in with defaults for anything not set yet. */
+export function useSettings(): Settings | undefined {
+  const row = useLiveQuery(async () => (await db.settings.get('#main')) ?? null);
+  return useMemo(() => (row === undefined ? undefined : { ...DEFAULT_SETTINGS, ...(row ?? {}) }), [row]);
 }
 
 export const UNCATEGORIZED_COLOR = '#8f877b';
@@ -44,6 +59,8 @@ export interface Library {
   categoryById: Map<string, Category>;
   label: (a: Activity | undefined) => string;
   color: (a: Activity | undefined) => string;
+  /** Text color that reads on top of `color`. */
+  ink: (a: Activity | undefined) => string;
   emoji: (a: Activity | undefined) => string;
   sessionLabel: (s: Session) => string;
   sessionColor: (s: Session) => string;
@@ -67,7 +84,11 @@ export function useLibrary(): Library | undefined {
     };
     const color = (a: Activity | undefined) => {
       const cat = a?.categoryId ? categoryById.get(a.categoryId) : undefined;
-      return cat?.color ?? UNCATEGORIZED_COLOR;
+      return cat ? colorVar(cat.color) : UNCATEGORIZED_COLOR;
+    };
+    const ink = (a: Activity | undefined) => {
+      const cat = a?.categoryId ? categoryById.get(a.categoryId) : undefined;
+      return cat ? inkVar(cat.color) : '#ffffff';
     };
     const emoji = (a: Activity | undefined) => {
       if (!a) return '';
@@ -81,6 +102,6 @@ export function useLibrary(): Library | undefined {
     const sessionEmoji = (s: Session) =>
       s.kind === 'sleep' ? (s.sleepType === 'nap' ? '💤' : '🌙') : emoji(activityById.get(s.activityId ?? ''));
 
-    return { categories, activities, activityById, categoryById, label, color, emoji, sessionLabel, sessionColor, sessionEmoji };
+    return { categories, activities, activityById, categoryById, label, color, ink, emoji, sessionLabel, sessionColor, sessionEmoji };
   }, [categories, activities]);
 }

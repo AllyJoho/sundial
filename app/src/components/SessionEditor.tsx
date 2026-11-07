@@ -1,10 +1,12 @@
 // Edit (or add) one block of time: what it was, when it started and ended, or delete it.
-import { useState } from 'react';
-import { addSession, deleteSession, saveSession } from '../actions';
+import { useMemo, useState } from 'react';
+import { deleteSession, placeSession } from '../actions';
+import { planInsert } from '../days';
 import { fromLocalInput, formatDuration, toLocalInput } from '../format';
 import type { Library } from '../hooks';
 import type { Session } from '../types';
 import { ActivitySelect } from './ActivityPicker';
+import { OverlapNotice } from './OverlapNotice';
 import { Sheet } from './Sheet';
 
 export interface SessionDraft {
@@ -14,11 +16,14 @@ export interface SessionDraft {
 
 export function SessionEditor({
   lib,
+  sessions,
   session,
   draft,
   onClose,
 }: {
   lib: Library;
+  /** All sessions, to check for overlaps. */
+  sessions: Session[];
   /** Editing an existing block. */
   session?: Session;
   /** Or adding a new one (e.g. filling an untracked gap). */
@@ -42,6 +47,11 @@ export function SessionEditor({
   else if (startMs > Date.now()) error = "Start time can't be in the future.";
   else if (!running && endMs <= startMs) error = 'End time needs to be after the start time.';
 
+  const plan = useMemo(
+    () => (error || startMs === null || endMs === null ? null : planInsert(sessions, startMs, endMs, Date.now(), session?.id)),
+    [error, sessions, startMs, endMs, session?.id],
+  );
+
   async function save() {
     if (error || startMs === null) return;
     const [kind, rest] = what.split(':') as ['act' | 'sleep', string];
@@ -53,8 +63,7 @@ export function SessionEditor({
       end: running ? null : endMs,
       note: note.trim() || undefined,
     };
-    if (session) await saveSession({ ...session, ...fields });
-    else await addSession({ ...fields, source: 'manual' });
+    await placeSession(session ? { ...session, ...fields } : { ...fields, source: 'manual' });
     onClose();
   }
 
@@ -92,6 +101,7 @@ export function SessionEditor({
         <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Anything to remember?" />
       </label>
       {!error && startMs !== null && endMs !== null && <p className="muted">Length: {formatDuration(endMs - startMs)}</p>}
+      {plan && <OverlapNotice lib={lib} plan={plan} />}
       {error && <p className="form-error">{error}</p>}
       <div className="sheet-actions">
         <button className="btn primary" onClick={save} disabled={!!error}>

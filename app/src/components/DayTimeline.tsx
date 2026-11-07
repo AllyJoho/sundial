@@ -1,33 +1,27 @@
-// Today's timeline: every block of time since you woke up, with untracked gaps. Tap anything to edit it.
-import { useMemo, useState } from 'react';
-import { SessionEditor, type SessionDraft } from '../components/SessionEditor';
-import { buildTimeline, type DayState } from '../day';
+// A day's summary bar, totals, and timeline. Used by the Days tab and the goodnight review.
+import { useMemo } from 'react';
+import { buildTimeline } from '../day';
 import { formatDuration, formatTime } from '../format';
-import { useNow, type Library } from '../hooks';
+import type { Library } from '../hooks';
 import type { Session } from '../types';
 
-export function TodayScreen({ lib, sessions, day }: { lib: Library; sessions: Session[]; day: DayState }) {
-  useNow(30_000); // re-draw every 30s so running blocks grow
-  const now = Date.now(); // always the real current time, so brand-new entries show up right away
-  const [editing, setEditing] = useState<{ session?: Session; draft?: SessionDraft } | null>(null);
+export function DayTimeline({
+  lib,
+  sessions,
+  start,
+  end,
+  onEditSession,
+  onFillGap,
+}: {
+  lib: Library;
+  sessions: Session[];
+  start: number;
+  end: number;
+  onEditSession?: (s: Session) => void;
+  onFillGap?: (gap: { start: number; end: number }) => void;
+}) {
+  const items = useMemo(() => buildTimeline(sessions, start, end), [sessions, start, end]);
 
-  // Which stretch of time counts as "today".
-  const { windowStart, title, subtitle } = useMemo(() => {
-    if (day.status === 'awake') return { windowStart: day.start, title: 'Today', subtitle: `Since you woke up at ${formatTime(day.start)}` };
-    if (day.status === 'asleep' && day.dayStart !== null)
-      return { windowStart: day.dayStart, title: 'Your last day', subtitle: `From ${formatTime(day.dayStart)} until now` };
-    const midnight = new Date(now);
-    midnight.setHours(0, 0, 0, 0);
-    return {
-      windowStart: midnight.getTime(),
-      title: 'Today',
-      subtitle: 'Since midnight. Once you log a wake-up, days will start when you wake.',
-    };
-  }, [day, now]);
-
-  const items = useMemo(() => buildTimeline(sessions, windowStart, now), [sessions, windowStart, now]);
-
-  // Totals per activity, for the summary at the top.
   const totals = useMemo(() => {
     const map = new Map<string, { label: string; emoji: string; color: string; ms: number }>();
     let untracked = 0;
@@ -44,16 +38,10 @@ export function TodayScreen({ lib, sessions, day }: { lib: Library; sessions: Se
     }
     return { list: [...map.values()].sort((a, b) => b.ms - a.ms), untracked };
   }, [items, lib]);
-  const total = now - windowStart;
 
   return (
-    <div className="screen">
-      <header className="day-header">
-        <div className="day-title">{title}</div>
-        <div className="muted">{subtitle}</div>
-      </header>
-
-      {total > 0 && (
+    <>
+      {end > start && (
         <section className="card">
           <div className="summary-bar" aria-hidden>
             {totals.list.map((t) => (
@@ -82,15 +70,14 @@ export function TodayScreen({ lib, sessions, day }: { lib: Library; sessions: Se
         </section>
       )}
 
-      <h3 className="section-title">Timeline</h3>
       <ol className="timeline">
         {items.map((it) =>
           it.type === 'gap' ? (
             <li key={`gap-${it.start}`}>
-              <button className="tl-gap" onClick={() => setEditing({ draft: { start: it.start, end: it.end } })}>
+              <button className="tl-gap" onClick={() => onFillGap?.(it)} disabled={!onFillGap}>
                 <span className="tl-time">{formatTime(it.start)}</span>
                 <span className="grow">Untracked · {formatDuration(it.end - it.start)}</span>
-                <span className="tl-add">+ Fill in</span>
+                {onFillGap && <span className="tl-add">+ Fill in</span>}
               </button>
             </li>
           ) : (
@@ -98,7 +85,8 @@ export function TodayScreen({ lib, sessions, day }: { lib: Library; sessions: Se
               <button
                 className="tl-block"
                 style={{ ['--tile-color' as string]: lib.sessionColor(it.session) }}
-                onClick={() => setEditing({ session: it.session })}
+                onClick={() => onEditSession?.(it.session)}
+                disabled={!onEditSession}
               >
                 <span className="tl-time">{formatTime(it.start)}</span>
                 <span className="grow">
@@ -110,19 +98,13 @@ export function TodayScreen({ lib, sessions, day }: { lib: Library; sessions: Se
                     {it.session.note ? ` · ${it.session.note}` : ''}
                   </span>
                 </span>
-                <span className="tl-edit">Edit</span>
+                {onEditSession && <span className="tl-edit">Edit</span>}
               </button>
             </li>
           ),
         )}
         {items.length === 0 && <li className="muted">Nothing here yet.</li>}
       </ol>
-
-      <button className="btn" onClick={() => setEditing({ draft: { start: Math.max(windowStart, now - 30 * 60_000), end: now } })}>
-        + Add time
-      </button>
-
-      {editing && <SessionEditor lib={lib} session={editing.session} draft={editing.draft} onClose={() => setEditing(null)} />}
-    </div>
+    </>
   );
 }

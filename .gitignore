@@ -1,0 +1,13 @@
+checkpoints/
+node_modules
+dist
+dev-dist
+.DS_Store
+
+# Sync (Dexie Cloud): the key file is a SECRET. Never commit it.
+dexie-cloud.key
+dexie-cloud.json
+.env.local
+
+# TypeScript build cache (made by `tsc -b`), not source code
+*.tsbuildinfo

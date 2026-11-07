@@ -41,3 +41,17 @@ export function fromLocalInput(value: string): number | null {
   const t = new Date(value).getTime();
   return Number.isNaN(t) ? null : t;
 }
+
+/**
+ * A friendly name for a sleep-based day, counted back from the latest one:
+ * the latest is "Today", the one before is "Yesterday", older ones get a date.
+ */
+export function dayLabel(dayStart: number, stepsBack: number): string {
+  if (stepsBack === 0) return 'Today';
+  if (stepsBack === 1) return 'Yesterday';
+  const d = new Date(dayStart);
+  const withinWeek = Date.now() - dayStart < 6 * 24 * 3600_000;
+  return withinWeek
+    ? d.toLocaleDateString([], { weekday: 'long' })
+    : d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+}

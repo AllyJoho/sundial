@@ -4,9 +4,9 @@ import { createActivity, createCategory, updateActivity, updateCategory } from '
 import { Sheet } from '../components/Sheet';
 import { db } from '../db';
 import { UNCATEGORIZED_COLOR, type Library } from '../hooks';
+import { CATEGORY_COLORS, colorVar, nextCategoryColor } from '../palette';
 import type { Activity, Category } from '../types';
 
-const PALETTE = ['#4f7cac', '#5f9e6e', '#c0794b', '#9a7bb5', '#c4a23a', '#c06070', '#4a9a9a', '#7a8a5a', '#8f877b'];
 
 type Editing =
   | { kind: 'activity'; activity?: Activity; categoryId: string | null; parentId: string | null }
@@ -71,7 +71,7 @@ export function ActivitiesScreen({ lib }: { lib: Library }) {
       )}
 
       {categories.map((c) => (
-        <section key={c.id} className={`card cat-card ${c.archived ? 'archived' : ''}`} style={{ ['--tile-color' as string]: c.color }}>
+        <section key={c.id} className={`card cat-card ${c.archived ? 'archived' : ''}`} style={{ ['--tile-color' as string]: colorVar(c.color) }}>
           <div className="cat-header">
             <h3>
               {c.emoji} {c.name}
@@ -100,7 +100,9 @@ export function ActivitiesScreen({ lib }: { lib: Library }) {
       </div>
 
       {editing?.kind === 'activity' && <ActivityEditor lib={lib} {...editing} onClose={() => setEditing(null)} />}
-      {editing?.kind === 'category' && <CategoryEditor category={editing.category} onClose={() => setEditing(null)} />}
+      {editing?.kind === 'category' && (
+        <CategoryEditor category={editing.category} used={lib.categories.filter((c) => !c.archived).map((c) => c.color)} onClose={() => setEditing(null)} />
+      )}
     </div>
   );
 }
@@ -213,10 +215,10 @@ function ActivityEditor({
   );
 }
 
-function CategoryEditor({ category, onClose }: { category?: Category; onClose: () => void }) {
+function CategoryEditor({ category, used, onClose }: { category?: Category; used: string[]; onClose: () => void }) {
   const [name, setName] = useState(category?.name ?? '');
   const [emoji, setEmoji] = useState(category?.emoji ?? '');
-  const [color, setColor] = useState(category?.color ?? PALETTE[0]);
+  const [color, setColor] = useState(category?.color ?? nextCategoryColor(used));
 
   async function save() {
     const clean = name.trim();
@@ -242,11 +244,11 @@ function CategoryEditor({ category, onClose }: { category?: Category; onClose: (
       <div className="field">
         <span>Color</span>
         <div className="swatches">
-          {PALETTE.map((c) => (
+          {CATEGORY_COLORS.map((c) => (
             <button
               key={c}
               className={`swatch ${c === color ? 'on' : ''}`}
-              style={{ background: c }}
+              style={{ background: colorVar(c) }}
               onClick={() => setColor(c)}
               aria-label={`Color ${c}`}
             />
