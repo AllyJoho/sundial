@@ -12,6 +12,7 @@ import { PlanScreen } from './screens/PlanScreen';
 import { TodayScreen } from './screens/TodayScreen';
 import { TrendsScreen } from './screens/TrendsScreen';
 import type { DayReview, Goal, Routine, Session, Settings, Task } from './types';
+import { TabIcon } from './components/TabIcons';
 
 type Tab = 'today' | 'plan' | 'trends' | 'more';
 
@@ -63,22 +64,25 @@ export function App() {
       </main>
       <QuickLog data={data} action={quick} setAction={setQuick} />
       <nav className="tabbar">
-        <TabButton id="today" icon="⏱️" label="Today" tab={tab} setTab={setTab} />
-        <TabButton id="plan" icon="🗓️" label="Plan" tab={tab} setTab={setTab} />
+        <TabButton id="today" label="Today" tab={tab} setTab={setTab} />
+        <TabButton id="plan" label="Plan" tab={tab} setTab={setTab} />
         <button className="tab-plus" onClick={() => setQuick('menu')} aria-label="Log something">
-          <span aria-hidden>+</span>
+          {/* Drawn as a shape so it sits exactly in the middle (a typed "+" sits a bit off-center). */}
+          <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden>
+            <path d="M11 2v18M2 11h18" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          </svg>
         </button>
-        <TabButton id="trends" icon="📊" label="Trends" tab={tab} setTab={setTab} />
-        <TabButton id="more" icon="⚙️" label="More" tab={tab} setTab={setTab} />
+        <TabButton id="trends" label="Trends" tab={tab} setTab={setTab} />
+        <TabButton id="more" label="More" tab={tab} setTab={setTab} />
       </nav>
     </div>
   );
 }
 
-function TabButton({ id, icon, label, tab, setTab }: { id: Tab; icon: string; label: string; tab: Tab; setTab: (t: Tab) => void }) {
+function TabButton({ id, label, tab, setTab }: { id: Tab; label: string; tab: Tab; setTab: (t: Tab) => void }) {
   return (
     <button className={tab === id ? 'on' : ''} onClick={() => setTab(id)} aria-current={tab === id ? 'page' : undefined}>
-      <span className="tab-icon">{icon}</span>
+      <TabIcon name={id} on={tab === id} />
       <span>{label}</span>
     </button>
   );

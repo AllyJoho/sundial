@@ -121,13 +121,17 @@ export function CalendarView({ lib, sessions, period, now }: { lib: Library; ses
                 onPointerEnter={onMouse({ date: d.date })}
               />
 
-              {d.blocks.map((b) => {
+              {(() => {
+                const lanes = layoutLanes(d.blocks);
+                return d.blocks.map((b, bi) => {
                 const top = yOf(minutesFromDate(d.date, b.start));
                 const bottom = d.dateEnd <= b.end ? yOf(1440) : yOf(minutesFromDate(d.date, b.end));
                 const h = Math.max(1.5, bottom - top);
-                // Multitasking: the later block sits in the right half, beside the one already going.
-                const bx = b.overlap ? x + colW / 2 : x + 1;
-                const bw = b.overlap ? colW / 2 - 1 : colW - 2;
+                // Multitasking: things that overlap share the column side by side, like iPhone Calendar.
+                const { lane, of } = lanes[bi];
+                const laneW = (colW - 2) / of;
+                const bx = x + 1 + lane * laneW;
+                const bw = laneW - (of > 1 ? 0.5 : 0);
                 const dim = active?.id && active.id !== b.session.id;
                 return (
                   <g key={b.session.id} className="cal-block-g" opacity={dim ? 0.45 : 1}>
@@ -146,15 +150,16 @@ export function CalendarView({ lib, sessions, period, now }: { lib: Library; ses
                       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), pick({ date: d.date, id: b.session.id }))}
                       onPointerEnter={onMouse({ date: d.date, id: b.session.id })}
                     />
-                    {/* "On what": the activity's emoji, when the block is tall enough to hold it. */}
-                    {week && h >= 15 && (
-                      <text x={bx + bw / 2} y={top + 12} textAnchor="middle" className="cal-emoji">
+                    {/* "On what": the activity's emoji, centered, only when the block has room for it. */}
+                    {week && h >= 20 && bw >= 16 && (
+                      <text x={bx + bw / 2} y={top + Math.min(h / 2, 14)} textAnchor="middle" dominantBaseline="central" className="cal-emoji">
                         {lib.sessionEmoji(b.session)}
                       </text>
                     )}
                   </g>
                 );
-              })}
+                });
+              })()}
 
               {d.wakes.map((t) => (
                 <circle key={t} cx={x + colW / 2} cy={yOf(minutesFromDate(d.date, t))} r={week ? 4 : 2.5} className="wake-dot" />
@@ -251,4 +256,32 @@ function describeDay(d: CalendarDay, keys: Map<string, Key>) {
   const date = new Date(d.date).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
   const parts = [...d.totals.entries()].map(([k, ms]) => `${keys.get(k)?.label ?? 'Other'} ${formatDuration(ms)}`);
   return `${date}: ${parts.length ? parts.join(', ') : 'nothing logged'}`;
+}
+
+/**
+ * Side-by-side lanes for overlapping blocks (blocks come sorted by start).
+ * Each group of blocks that overlap each other splits the column evenly; a block takes the
+ * leftmost lane that's free when it starts. Touching (or within a minute) doesn't count as overlap.
+ */
+function layoutLanes(blocks: { start: number; end: number }[]): { lane: number; of: number }[] {
+  const out: { lane: number; of: number }[] = [];
+  let group: number[] = [];
+  let laneEnds: number[] = [];
+  let groupEnd = -Infinity;
+  const closeGroup = () => {
+    for (const i of group) out[i].of = laneEnds.length;
+    group = [];
+    laneEnds = [];
+  };
+  blocks.forEach((b, i) => {
+    if (b.start >= groupEnd - 60_000) closeGroup();
+    let lane = laneEnds.findIndex((end) => end <= b.start + 60_000);
+    if (lane === -1) lane = laneEnds.push(0) - 1;
+    laneEnds[lane] = b.end;
+    out[i] = { lane, of: 1 };
+    group.push(i);
+    groupEnd = group.length === 1 ? b.end : Math.max(groupEnd, b.end);
+  });
+  closeGroup();
+  return out;
 }
