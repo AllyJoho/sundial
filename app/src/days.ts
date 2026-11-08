@@ -17,24 +17,69 @@ export interface Day {
   /** The main sleep that ended this day (reviews link to it). */
   closingSleepId: string | null;
   review?: DayReview;
+  /** Time covered by at least one tracked block (overlaps count once). */
+  trackedMs: number;
+}
+
+/** Length of a day (up to `now` if it's still going). */
+export const dayLength = (d: Day, now: number) => (d.end ?? now) - d.start;
+
+// ---------------------------------------------------------------------------
+// Covered time (for "how much of the day is tracked"; overlapping blocks count once)
+// ---------------------------------------------------------------------------
+
+/** Merges every session into non-overlapping [start, end] stretches, sorted by start. */
+export function mergeIntervals(sessions: Session[], now: number): [number, number][] {
+  const list = sessions
+    .map((s) => [s.start, s.end ?? now] as [number, number])
+    .filter(([a, b]) => b > a)
+    .sort((x, y) => x[0] - y[0]);
+  const out: [number, number][] = [];
+  for (const [a, b] of list) {
+    const last = out[out.length - 1];
+    if (last && a <= last[1]) last[1] = Math.max(last[1], b);
+    else out.push([a, b]);
+  }
+  return out;
+}
+
+/** How much of [start, end] the merged stretches cover. */
+export function coveredWithin(merged: [number, number][], start: number, end: number): number {
+  // Binary search for the first stretch that ends after `start`.
+  let lo = 0;
+  let hi = merged.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (merged[mid][1] <= start) lo = mid + 1;
+    else hi = mid;
+  }
+  let total = 0;
+  for (let i = lo; i < merged.length && merged[i][0] < end; i++) {
+    total += Math.min(merged[i][1], end) - Math.max(merged[i][0], start);
+  }
+  return total;
 }
 
 const isMain = (s: Session) => s.kind === 'sleep' && s.sleepType === 'main';
 
 /** Every day you've had, oldest first. The last one may still be going (end = null). */
-export function listDays(sessions: Session[], reviews: DayReview[]): Day[] {
+export function listDays(sessions: Session[], reviews: DayReview[], now = Date.now()): Day[] {
   const mains = sessions.filter(isMain).sort((a, b) => a.start - b.start);
+  // Activities and naps count as tracked time; the main sleeps are the day's edges.
+  const merged = mergeIntervals(sessions.filter((s) => !isMain(s)), now);
   const reviewBySleep = new Map(reviews.map((r) => [r.sleepId, r]));
   const days: Day[] = [];
   for (let i = 0; i < mains.length; i++) {
     const wake = mains[i].end;
     if (wake === null) continue; // still asleep: no day after this one yet
     const next = mains[i + 1];
+    const end = next ? Math.max(next.start, wake) : null;
     days.push({
       start: wake,
-      end: next ? Math.max(next.start, wake) : null,
+      end,
       closingSleepId: next?.id ?? null,
       review: next ? reviewBySleep.get(next.id) : undefined,
+      trackedMs: coveredWithin(merged, wake, end ?? now),
     });
   }
   return days;
@@ -47,15 +92,29 @@ export function listDays(sessions: Session[], reviews: DayReview[]): Day[] {
 /** How long after a day ends you can still close it out and have it count. */
 export const RECOVERY_WINDOW_MS = 48 * H;
 
-/** A day counts toward your streak if it was closed out within the recovery window. */
+/** A day needs more than this share tracked to count toward the streak. */
+export const STREAK_MIN_TRACKED = 0.5;
+
+/** How much more time needs filling in for a day to pass the "more than half tracked" bar (0 if it already does). */
+export function moreNeededMs(day: Day, now: number): number {
+  const needed = Math.floor(dayLength(day, now) * STREAK_MIN_TRACKED) + 60_000 - day.trackedMs;
+  return Math.max(0, needed);
+}
+
+/**
+ * A day counts toward your streak if it was closed out within the recovery window
+ * and more than half of it was tracked. (Sun Check 2026-11-07.)
+ */
 export function countsForStreak(day: Day): boolean {
-  return !!day.review && day.end !== null && day.review.closedAt <= day.end + RECOVERY_WINDOW_MS;
+  if (!day.review || day.end === null) return false;
+  if (day.review.closedAt > day.end + RECOVERY_WINDOW_MS) return false;
+  return day.trackedMs > (day.end - day.start) * STREAK_MIN_TRACKED;
 }
 
 export interface StreakInfo {
   /** Days in a row that were closed out. */
   count: number;
-  /** Recent days that aren't closed yet but still can be (newest first). Closing them keeps the streak. */
+  /** Recent days that don't count yet but still can (newest first): not closed out, or under half tracked. */
   recoverable: Day[];
   /** Streak freezes saved up (earned one per 7 days in a row, up to MAX_FREEZES). */
   freezes: number;
@@ -83,8 +142,8 @@ export function getStreak(days: Day[], now: number): StreakInfo {
     if (countsForStreak(d)) {
       count++;
       if (count % FREEZE_EVERY === 0) freezes = Math.min(MAX_FREEZES, freezes + 1);
-    } else if (!d.review && now <= d.end! + RECOVERY_WINDOW_MS) {
-      // pending: can still be closed out
+    } else if (now <= d.end! + RECOVERY_WINDOW_MS) {
+      // pending: can still be closed out or filled in
     } else if (freezes > 0) {
       freezes--;
       frozen.add(d.start);
@@ -92,7 +151,7 @@ export function getStreak(days: Day[], now: number): StreakInfo {
       count = 0;
     }
   }
-  const recoverable = finished.filter((d) => !d.review && now <= d.end! + RECOVERY_WINDOW_MS).reverse();
+  const recoverable = finished.filter((d) => !countsForStreak(d) && now <= d.end! + RECOVERY_WINDOW_MS).reverse();
   return { count, recoverable, freezes, frozen };
 }
 
@@ -188,36 +247,8 @@ export function planInsert(sessions: Session[], start: number, end: number, now:
 }
 
 // ---------------------------------------------------------------------------
-// Gap fill for the review
+// Review
 // ---------------------------------------------------------------------------
 
-/** Untracked stretches at least this long get a "What was this?" in the review. */
+/** Untracked stretches at least this long get a gentle "What was this?" highlight in the review. */
 export const GAP_PROMPT_MS = 1 * H;
-/** When rebuilding a mostly-untracked day, long gaps are split into blocks no longer than this. */
-const ROUGH_BLOCK_MS = 4 * H;
-
-export interface GapChunk {
-  start: number;
-  end: number;
-}
-
-/** True when less than half the day was tracked, so closing it means rebuilding it (streak recovery). */
-export function needsRebuild(sessions: Session[], start: number, end: number): boolean {
-  const items = buildTimeline(sessions, start, end);
-  const untracked = items.filter((i) => i.type === 'gap').reduce((t, g) => t + (g.end - g.start), 0);
-  return end - start > 2 * H && untracked / (end - start) > 0.5;
-}
-
-/** The untracked stretches to ask about, split into rough blocks when rebuilding a day. */
-export function gapChunks(sessions: Session[], start: number, end: number, rebuild: boolean): GapChunk[] {
-  const gaps = buildTimeline(sessions, start, end).filter((i) => i.type === 'gap' && i.end - i.start >= GAP_PROMPT_MS);
-  if (!rebuild) return gaps.map((g) => ({ start: g.start, end: g.end }));
-  return gaps.flatMap((g) => {
-    const parts = Math.max(1, Math.ceil((g.end - g.start) / ROUGH_BLOCK_MS));
-    const size = (g.end - g.start) / parts;
-    return Array.from({ length: parts }, (_, i) => ({
-      start: Math.round(g.start + i * size),
-      end: i === parts - 1 ? g.end : Math.round(g.start + (i + 1) * size),
-    }));
-  });
-}

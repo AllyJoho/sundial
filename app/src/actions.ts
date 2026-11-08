@@ -2,7 +2,7 @@
 import { db } from './db';
 import { planStartChange } from './day';
 import { planInsert, type InsertPlan } from './days';
-import { DEFAULT_SETTINGS, type Activity, type Category, type DayReview, type Goal, type Routine, type Session, type Settings, type SleepType } from './types';
+import { DEFAULT_SETTINGS, type Activity, type Category, type DayReview, type Goal, type Routine, type Session, type Settings, type SleepType, type Task } from './types';
 
 /**
  * A unique id for each new thing we save.
@@ -130,10 +130,11 @@ async function overlapping(start: number, end: number) {
 }
 
 /**
- * Saves a block of time and makes room for it: anything it overlaps is shortened, moved, split, or removed.
- * Used by the time editor, gap fill, and logging a missed sleep.
+ * Saves a block of time. By default it makes room: anything it overlaps is shortened, moved, split, or removed.
+ * With `keepOverlaps`, overlapping blocks are left alone (multitasking, Sun Check 2026-11-07).
+ * Used by the time editor, gap fill, log past time, and logging a missed sleep.
  */
-export async function placeSession(session: Omit<Session, 'id'> & { id?: string }): Promise<string> {
+export async function placeSession(session: Omit<Session, 'id'> & { id?: string }, opts: { keepOverlaps?: boolean } = {}): Promise<string> {
   const id = session.id ?? newId();
   const end = session.end ?? Date.now();
   await db.transaction('rw', db.sessions, async () => {
@@ -142,8 +143,10 @@ export async function placeSession(session: Omit<Session, 'id'> & { id?: string 
       const others = await db.sessions.filter((s) => s.end === null && s.id !== id).toArray();
       for (const o of others) await db.sessions.update(o.id, { end: Math.max(o.start, Math.min(Date.now(), session.start)) });
     }
-    const plan = planInsert(await overlapping(session.start, end), session.start, end, Date.now(), id);
-    await applyPlan(plan);
+    if (!opts.keepOverlaps) {
+      const plan = planInsert(await overlapping(session.start, end), session.start, end, Date.now(), id);
+      await applyPlan(plan);
+    }
     await db.sessions.put({ ...session, id } as Session);
   });
   return id;
@@ -206,4 +209,41 @@ export async function endRoutine(stopTimer: boolean) {
 /** Ends the running activity at an earlier time ("I stopped at 2:40"). */
 export async function stopRunningAt(at: number) {
   await stopRunning(Math.min(at, Date.now()));
+}
+
+// ---------------------------------------------------------------------------
+// Tasks (to-do list)
+// ---------------------------------------------------------------------------
+
+export async function addTask(title: string, list: Task['list'] = 'today') {
+  const clean = title.trim();
+  if (!clean) return;
+  await db.tasks.add({ id: newId(), title: clean, list, createdAt: Date.now() });
+}
+
+export async function saveTask(task: Task) {
+  await db.tasks.put(task);
+}
+
+export async function toggleTaskDone(task: Task) {
+  // Checking a Later task off also puts it on today's list, so it shows as done today.
+  await db.tasks.update(task.id, task.doneAt ? { doneAt: undefined } : { doneAt: Date.now(), list: 'today' });
+}
+
+export async function moveTask(id: string, list: Task['list']) {
+  await db.tasks.update(id, { list });
+}
+
+export async function deleteTask(id: string) {
+  await db.tasks.delete(id);
+}
+
+/** At goodnight: what to do with each unfinished task. */
+export async function carryTasks(choices: Record<string, 'today' | 'later' | 'remove'>) {
+  await db.transaction('rw', db.tasks, async () => {
+    for (const [id, choice] of Object.entries(choices)) {
+      if (choice === 'remove') await db.tasks.delete(id);
+      else await db.tasks.update(id, { list: choice });
+    }
+  });
 }

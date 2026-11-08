@@ -3,6 +3,8 @@ import { useMemo, useState } from 'react';
 import type { AppData } from '../App';
 import { deleteGoal, saveGoal } from '../actions';
 import { GoalBars } from '../components/GoalBars';
+import { ActivityField } from '../components/ActivityField';
+import { DurationStepper } from '../components/Choice';
 import { Sheet } from '../components/Sheet';
 import { formatDuration } from '../format';
 import { dailyBaseline, goalProgress } from '../goals';
@@ -57,9 +59,6 @@ export function describeGoal(g: Goal, data: AppData) {
   return `${g.kind === 'min' ? 'At least' : 'No more than'} ${formatDuration(g.minutes * 60_000)} of ${targetName(g.target, data)} a ${g.period}`;
 }
 
-const HOURS = Array.from({ length: 13 }, (_, i) => i);
-const MINUTES = [0, 15, 30, 45];
-
 function GoalEditor({ data, goal, onClose }: { data: AppData; goal?: Goal; onClose: () => void }) {
   const { lib } = data;
   const [target, setTarget] = useState(goal ? `${goal.target.type}:${goal.target.id}` : '');
@@ -85,33 +84,16 @@ function GoalEditor({ data, goal, onClose }: { data: AppData; goal?: Goal; onClo
 
   return (
     <Sheet title={goal ? 'Edit goal' : 'New goal'} onClose={onClose}>
-      <label className="field">
-        <span>Goal for</span>
-        <select value={target} onChange={(e) => setTarget(e.target.value)}>
-          <option value="" disabled>
-            Choose…
-          </option>
-          <optgroup label="Categories (everything in them)">
-            {lib.categories
-              .filter((c) => !c.archived)
-              .map((c) => (
-                <option key={c.id} value={`category:${c.id}`}>
-                  {c.emoji} {c.name}
-                </option>
-              ))}
-          </optgroup>
-          <optgroup label="Activities (including sub-activities)">
-            {lib.activities
-              .filter((a) => !a.archived)
-              .sort((a, b) => lib.label(a).localeCompare(lib.label(b)))
-              .map((a) => (
-                <option key={a.id} value={`activity:${a.id}`}>
-                  {lib.emoji(a)} {lib.label(a)}
-                </option>
-              ))}
-          </optgroup>
-        </select>
-      </label>
+      <ActivityField
+        lib={lib}
+        sessions={data.sessions}
+        label="Goal for"
+        includeCategories
+        allowCreate={false}
+        // The picker speaks "act:"/"cat:"; goals store "activity:"/"category:".
+        value={target.replace(/^activity:/, 'act:').replace(/^category:/, 'cat:')}
+        onChange={(v) => setTarget(v.replace(/^act:/, 'activity:').replace(/^cat:/, 'category:'))}
+      />
 
       <div className="segmented" role="group" aria-label="Kind of goal">
         <button className={kind === 'min' ? 'on' : ''} onClick={() => setKind('min')}>
@@ -122,34 +104,15 @@ function GoalEditor({ data, goal, onClose }: { data: AppData; goal?: Goal; onClo
         </button>
       </div>
 
-      <div className="field-row">
-        <label className="field grow">
-          <span>Hours</span>
-          <select value={Math.floor(minutes / 60)} onChange={(e) => setMinutes(Number(e.target.value) * 60 + (minutes % 60))}>
-            {HOURS.map((h) => (
-              <option key={h} value={h}>
-                {h}h
-              </option>
-            ))}
-            {period === 'week' &&
-              [15, 20, 25, 30, 40, 50, 60].map((h) => (
-                <option key={h} value={h}>
-                  {h}h
-                </option>
-              ))}
-          </select>
-        </label>
-        <label className="field grow">
-          <span>Minutes</span>
-          <select value={minutes % 60} onChange={(e) => setMinutes(Math.floor(minutes / 60) * 60 + Number(e.target.value))}>
-            {MINUTES.map((m) => (
-              <option key={m} value={m}>
-                {m}m
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <DurationStepper
+        label="How much"
+        minutes={minutes}
+        onChange={setMinutes}
+        step={15}
+        min={15}
+        max={period === 'week' ? 60 * 60 : 16 * 60}
+        presets={period === 'week' ? [120, 300, 600, 1200] : [30, 60, 120, 180]}
+      />
 
       <div className="segmented" role="group" aria-label="Per">
         <button className={period === 'day' ? 'on' : ''} onClick={() => setPeriod('day')}>

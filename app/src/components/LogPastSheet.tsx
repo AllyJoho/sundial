@@ -1,23 +1,23 @@
-// After-the-fact logging: "I did laundry for 30 min, ended 10 min ago." A few taps, no typing.
+// After-the-fact logging: "I did laundry for 30 min, ended 10 min ago." A few taps, no typing. Naps too.
 import { useMemo, useState } from 'react';
 import { placeSession } from '../actions';
 import { planInsert } from '../days';
 import { formatDuration, formatTime } from '../format';
 import type { Library } from '../hooks';
-import type { Activity, Session } from '../types';
-import { ActivitySelect } from './ActivityPicker';
+import type { Session } from '../types';
+import { ActivityField } from './ActivityField';
 import { OverlapNotice } from './OverlapNotice';
 import { Sheet } from './Sheet';
 
 const LENGTHS = [10, 15, 30, 45, 60, 90, 120];
 const ENDED = [0, 10, 30, 60, 120];
 
-export function LogPastSheet({ lib, sessions, choices, onClose }: { lib: Library; sessions: Session[]; choices: Activity[]; onClose: () => void }) {
+export function LogPastSheet({ lib, sessions, onClose }: { lib: Library; sessions: Session[]; onClose: () => void }) {
   const [openedAt] = useState(() => Date.now());
   const [what, setWhat] = useState('');
   const [length, setLength] = useState(30);
   const [endedAgo, setEndedAgo] = useState(0);
-  const [more, setMore] = useState(false);
+  const [keepBoth, setKeepBoth] = useState(true);
 
   const end = openedAt - endedAgo * 60_000;
   const start = end - length * 60_000;
@@ -25,26 +25,17 @@ export function LogPastSheet({ lib, sessions, choices, onClose }: { lib: Library
 
   async function save() {
     if (!what) return;
-    await placeSession({ kind: 'activity', activityId: what.slice(4), start, end, source: 'manual' });
+    const block =
+      what === 'sleep:nap'
+        ? { kind: 'sleep' as const, activityId: null, sleepType: 'nap' as const, start, end, source: 'manual' as const }
+        : { kind: 'activity' as const, activityId: what.slice(4), start, end, source: 'manual' as const };
+    await placeSession(block, { keepOverlaps: keepBoth });
     onClose();
   }
 
   return (
     <Sheet title="Log past time" onClose={onClose}>
-      <div className="field">
-        <span>What did you do?</span>
-        <div className="chips">
-          {choices.map((a) => (
-            <button key={a.id} className={`chip ${what === `act:${a.id}` ? 'on' : ''}`} onClick={() => setWhat(`act:${a.id}`)}>
-              {lib.emoji(a)} {lib.label(a)}
-            </button>
-          ))}
-          <button className={`chip ${more ? 'on-outline' : ''}`} onClick={() => setMore(!more)}>
-            Other…
-          </button>
-        </div>
-        {more && <ActivitySelect lib={lib} value={what} onChange={setWhat} includeSleep={false} />}
-      </div>
+      <ActivityField lib={lib} sessions={sessions} value={what} onChange={setWhat} includeSleep="nap" label="What did you do?" />
       <div className="field">
         <span>For how long?</span>
         <div className="chips">
@@ -68,7 +59,7 @@ export function LogPastSheet({ lib, sessions, choices, onClose }: { lib: Library
       <p className="muted" style={{ margin: 0 }}>
         {formatTime(start)} – {formatTime(end)} · {formatDuration(length * 60_000)}
       </p>
-      <OverlapNotice lib={lib} plan={plan} />
+      <OverlapNotice lib={lib} plan={plan} keepBoth={keepBoth} onKeepBothChange={setKeepBoth} />
       <p className="muted small" style={{ margin: 0 }}>
         Need exact times? Use + Add time on the Days tab.
       </p>

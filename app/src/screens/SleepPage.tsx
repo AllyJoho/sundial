@@ -13,6 +13,7 @@ import {
   totalSleep,
   wakeSpread,
 } from '../goals';
+import { ChipChoice, DurationStepper } from '../components/Choice';
 import type { SleepMode } from '../types';
 
 const MODES: { id: SleepMode; title: string; body: string }[] = [
@@ -60,25 +61,30 @@ export function SleepPage({ data }: { data: AppData }) {
           <p className="muted small">Track a few more wake-ups (3+) so Sundial can find your usual wake time.</p>
         )}
         {settings.sleepMode === 'stabilize' && target !== null && (
-          <p>
-            Target: wake around <strong>{formatClockMinutes(target)}</strong> (your usual), within{' '}
-            <WindowSelect value={settings.wakeWindowMinutes} />.
-          </p>
+          <>
+            <p>
+              Target: wake around <strong>{formatClockMinutes(target)}</strong> (your usual).
+            </p>
+            <WindowChoice value={settings.wakeWindowMinutes} />
+          </>
         )}
         {settings.sleepMode === 'shift' && target !== null && (
           <>
             <p>
-              This week: wake by <strong>{formatClockMinutes(target)}</strong>, within <WindowSelect value={settings.wakeWindowMinutes} />.
-              Started from {formatClockMinutes(settings.shiftStartWake!)} on {new Date(settings.shiftStartedAt!).toLocaleDateString()}.
+              This week: wake by <strong>{formatClockMinutes(target)}</strong>. Started from {formatClockMinutes(settings.shiftStartWake!)} on{' '}
+              {new Date(settings.shiftStartedAt!).toLocaleDateString()}.
             </p>
+            <WindowChoice value={settings.wakeWindowMinutes} />
+            <ChipChoice
+              label="Earlier each week by"
+              value={settings.shiftMinutesPerWeek}
+              onChange={(v) => saveSettings({ shiftMinutesPerWeek: v })}
+              options={[
+                { value: 15, label: '15 min' },
+                { value: 30, label: '30 min' },
+              ]}
+            />
             <div className="field-row">
-              <label className="field grow">
-                <span>Earlier each week by</span>
-                <select value={settings.shiftMinutesPerWeek} onChange={(e) => saveSettings({ shiftMinutesPerWeek: Number(e.target.value) })}>
-                  <option value={15}>15 min</option>
-                  <option value={30}>30 min</option>
-                </select>
-              </label>
               <label className="field grow">
                 <span>Stop at</span>
                 <input
@@ -97,28 +103,22 @@ export function SleepPage({ data }: { data: AppData }) {
 
       <section className="card">
         <h3 className="card-title">Sleep goal</h3>
-        <div className="field-row">
-          <label className="field grow">
-            <span>At least</span>
-            <select value={settings.sleepHoursMin} onChange={(e) => saveSettings({ sleepHoursMin: Number(e.target.value) })}>
-              {[5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map((h) => (
-                <option key={h} value={h}>
-                  {h}h
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field grow">
-            <span>At most</span>
-            <select value={settings.sleepHoursMax} onChange={(e) => saveSettings({ sleepHoursMax: Number(e.target.value) })}>
-              {[7, 7.5, 8, 8.5, 9, 9.5, 10, 11, 12].map((h) => (
-                <option key={h} value={h}>
-                  {h}h
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <DurationStepper
+          label="At least"
+          minutes={settings.sleepHoursMin * 60}
+          onChange={(m) => saveSettings({ sleepHoursMin: m / 60, sleepHoursMax: Math.max(settings.sleepHoursMax, m / 60) })}
+          step={30}
+          min={4 * 60}
+          max={11 * 60}
+        />
+        <DurationStepper
+          label="At most"
+          minutes={settings.sleepHoursMax * 60}
+          onChange={(m) => saveSettings({ sleepHoursMax: m / 60, sleepHoursMin: Math.min(settings.sleepHoursMin, m / 60) })}
+          step={30}
+          min={5 * 60}
+          max={13 * 60}
+        />
         <label className="check">
           <input type="checkbox" checked={settings.napsCount} onChange={(e) => saveSettings({ napsCount: e.target.checked })} />
           Naps count toward total sleep
@@ -178,14 +178,14 @@ export function SleepPage({ data }: { data: AppData }) {
   );
 }
 
-function WindowSelect({ value }: { value: number }) {
+/** How close to the target wake time counts as "on target". */
+function WindowChoice({ value }: { value: number }) {
   return (
-    <select className="inline-select" value={value} onChange={(e) => saveSettings({ wakeWindowMinutes: Number(e.target.value) })}>
-      {[30, 45, 60, 90, 120].map((m) => (
-        <option key={m} value={m}>
-          ±{formatDuration(m * 60_000)}
-        </option>
-      ))}
-    </select>
+    <ChipChoice
+      label="Counts as on target within"
+      value={value}
+      onChange={(v) => saveSettings({ wakeWindowMinutes: v })}
+      options={[30, 45, 60, 90, 120].map((m) => ({ value: m, label: `±${formatDuration(m * 60_000)}` }))}
+    />
   );
 }

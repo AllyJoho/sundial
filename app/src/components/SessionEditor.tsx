@@ -5,7 +5,7 @@ import { planInsert } from '../days';
 import { fromLocalInput, formatDuration, toLocalInput } from '../format';
 import type { Library } from '../hooks';
 import type { Session } from '../types';
-import { ActivitySelect } from './ActivityPicker';
+import { ActivityField } from './ActivityField';
 import { OverlapNotice } from './OverlapNotice';
 import { Sheet } from './Sheet';
 
@@ -38,6 +38,7 @@ export function SessionEditor({
   const [running, setRunning] = useState(session ? session.end === null : false);
   const [end, setEnd] = useState(toLocalInput(initial.end ?? Date.now()));
   const [note, setNote] = useState(session?.note ?? '');
+  const [keepBoth, setKeepBoth] = useState(true);
 
   const startMs = fromLocalInput(start);
   const endMs = running ? Date.now() : fromLocalInput(end);
@@ -63,7 +64,8 @@ export function SessionEditor({
       end: running ? null : endMs,
       note: note.trim() || undefined,
     };
-    await placeSession(session ? { ...session, ...fields } : { ...fields, source: 'manual' });
+    // A running timer can't overlap another running one (one live timer at a time), so placeSession still stops others.
+    await placeSession(session ? { ...session, ...fields } : { ...fields, source: 'manual' }, { keepOverlaps: keepBoth });
     onClose();
   }
 
@@ -76,10 +78,7 @@ export function SessionEditor({
 
   return (
     <Sheet title={session ? 'Edit time' : 'Add time'} onClose={onClose}>
-      <label className="field">
-        <span>What was it?</span>
-        <ActivitySelect lib={lib} value={what} onChange={setWhat} />
-      </label>
+      <ActivityField lib={lib} sessions={sessions} value={what} onChange={setWhat} includeSleep="all" />
       <label className="field">
         <span>Started</span>
         <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} />
@@ -101,11 +100,12 @@ export function SessionEditor({
         <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Anything to remember?" />
       </label>
       {!error && startMs !== null && endMs !== null && <p className="muted">Length: {formatDuration(endMs - startMs)}</p>}
-      {plan && <OverlapNotice lib={lib} plan={plan} />}
-      {error && <p className="form-error">{error}</p>}
+      {plan && <OverlapNotice lib={lib} plan={plan} keepBoth={keepBoth} onKeepBothChange={setKeepBoth} />}
+      {/* Not picking yet isn't an error: the Save button just says what's missing. */}
+      {error && what && <p className="form-error">{error}</p>}
       <div className="sheet-actions">
         <button className="btn primary" onClick={save} disabled={!!error}>
-          Save
+          {what ? 'Save' : 'Choose what it was'}
         </button>
         {session && (
           <button className="btn danger-quiet" onClick={remove}>

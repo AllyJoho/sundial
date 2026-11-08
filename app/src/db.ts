@@ -6,7 +6,7 @@ import dexieCloud from 'dexie-cloud-addon';
 import { CLOUD_URL } from './cloud';
 import { renameFixedIds, type DataBundle } from './ids';
 import { CATEGORY_COLORS, OLD_COLOR_TO_NEW } from './palette';
-import type { Activity, Category, DayReview, Goal, Routine, Session, Settings } from './types';
+import type { Activity, Category, DayReview, Goal, Routine, Session, Settings, Task } from './types';
 
 /** The local-only database's name. (With sync on, Dexie Cloud uses its own database next to it.) */
 export const LOCAL_DB_NAME = 'sundial';
@@ -25,6 +25,8 @@ const OLD_STARTER_COLORS: Record<string, [old: string, slot: number]> = {
   'cat-screens': ['#9a7bb5', 3],
 };
 
+const STARTER_ACTIVITY_IDS = ['#act-class', '#act-homework', '#act-eating', '#act-getting-ready', '#act-gaming', '#act-scrolling'];
+
 class SundialDB extends Dexie {
   categories!: Table<Category, string>;
   activities!: Table<Activity, string>;
@@ -33,6 +35,7 @@ class SundialDB extends Dexie {
   goals!: Table<Goal, string>;
   settings!: Table<Settings, string>;
   routines!: Table<Routine, string>;
+  tasks!: Table<Task, string>;
 
   constructor() {
     super(LOCAL_DB_NAME, { addons: CLOUD_URL ? [dexieCloud] : [] });
@@ -79,6 +82,22 @@ class SundialDB extends Dexie {
         }
       });
 
+    // Version 7 (Sun Check 2026-11-07): "Your usual" tiles now learn from what you use, and ★ means "always show".
+    // Starter activities were all ★ before, which would have pinned them forever, so un-star them once.
+    this.version(7)
+      .stores({})
+      .upgrade((tx) =>
+        tx
+          .table('activities')
+          .toCollection()
+          .modify((a: Activity) => {
+            if (STARTER_ACTIVITY_IDS.includes(a.id)) a.favorite = false;
+          }),
+      );
+
+    // Version 8 (Sun Check 2026-11-07, "To-do list"): tasks.
+    this.version(8).stores({ tasks: 'id, list' });
+
     // First launch: add a few starter categories and activities. All of them can be renamed or archived.
     // These use bulkAdd (insert only), so a new device can never overwrite your synced versions.
     this.on('populate', (tx) => {
@@ -110,7 +129,7 @@ export function starterCategories(): Category[] {
 export function starterActivities(): Activity[] {
   const now = Date.now();
   const a = (id: string, name: string, categoryId: string, emoji: string): Activity => ({
-    id, name, categoryId, parentId: null, emoji, favorite: true, archived: false, createdAt: now,
+    id, name, categoryId, parentId: null, emoji, favorite: false, archived: false, createdAt: now,
   });
   return [
     a('#act-class', 'Class', '#cat-school', '🏫'),

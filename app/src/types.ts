@@ -94,6 +94,8 @@ export interface Settings {
   shiftGoalWake?: number;
   /** The routine you're in the middle of, and which step (0 = first activity). */
   activeRoutine?: { routineId: string; step: number };
+  /** Show "Add to iPhone Calendar" on tasks. Off by default (many people won't want it). */
+  calendarExport?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -114,4 +116,32 @@ export interface Routine {
   /** The activities, in order. */
   activityIds: string[];
   createdAt: number;
+}
+
+/**
+ * A to-do item (Sun Check 2026-11-07, "To-do list"). Everything except the title is optional.
+ * Tasks aren't time blocks; doing one can still be tracked as an activity like anything else.
+ */
+export interface Task {
+  id: string;
+  title: string;
+  /** Instructions for future-you ("ask for billing, account #1234"). */
+  notes?: string;
+  /** Due date as a calendar date, "YYYY-MM-DD". */
+  due?: string;
+  /** Only doable during these hours, e.g. Mon–Fri 9–5 (phone calls to businesses). */
+  window?: TaskWindow;
+  /** 'today' = on today's list; 'later' = the Later list (moves to the Plan tab once it exists). */
+  list: 'today' | 'later';
+  createdAt: number;
+  /** When it was checked off (done tasks drop off the list after the day they were done). */
+  doneAt?: number;
+}
+
+export interface TaskWindow {
+  /** Days of the week it's open: 0 = Sunday … 6 = Saturday. */
+  days: number[];
+  /** Minutes after midnight, e.g. 9:00 → 540, 17:00 → 1020. */
+  start: number;
+  end: number;
 }

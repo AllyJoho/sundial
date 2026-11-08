@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import type { AppData } from '../App';
 import { deleteRoutine, saveRoutine } from '../actions';
-import { ActivitySelect } from '../components/ActivityPicker';
+import { ActivityField } from '../components/ActivityField';
 import { Sheet } from '../components/Sheet';
 import type { Routine } from '../types';
 
@@ -46,7 +46,6 @@ function RoutineEditor({ data, routine, onClose }: { data: AppData; routine?: Ro
   const [name, setName] = useState(routine?.name ?? '');
   const [emoji, setEmoji] = useState(routine?.emoji ?? '');
   const [steps, setSteps] = useState<string[]>(routine?.activityIds ?? []);
-  const [adding, setAdding] = useState('');
 
   const move = (i: number, by: number) => {
     const next = [...steps];
@@ -96,16 +95,13 @@ function RoutineEditor({ data, routine, onClose }: { data: AppData; routine?: Ro
             );
           })}
         </ol>
-        <ActivitySelect
+        <ActivityField
           lib={lib}
-          value={adding}
-          includeSleep={false}
-          onChange={(v) => {
-            setSteps([...steps, v.slice(4)]);
-            setAdding('');
-          }}
+          sessions={data.sessions}
+          value=""
+          label="Add a step"
+          onChange={(v) => setSteps([...steps, v.slice(4)])}
         />
-        <span className="small">Pick an activity above to add it as the next step.</span>
       </div>
       <div className="sheet-actions">
         <button className="btn primary" onClick={save} disabled={!name.trim() || steps.length === 0}>

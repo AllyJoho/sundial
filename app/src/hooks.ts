@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
 import { colorVar, inkVar } from './palette';
-import { DEFAULT_SETTINGS, type Activity, type Category, type DayReview, type Goal, type Routine, type Session, type Settings } from './types';
+import { DEFAULT_SETTINGS, type Activity, type Category, type DayReview, type Goal, type Routine, type Session, type Settings, type Task } from './types';
 
 /** The current time, updated every `intervalMs`. Used for running timers. */
 export function useNow(intervalMs = 1000) {
@@ -36,6 +36,10 @@ export function useReviews(): DayReview[] | undefined {
 
 export function useRoutines(): Routine[] | undefined {
   return useLiveQuery(async () => (await db.routines.toArray()).sort((a, b) => a.createdAt - b.createdAt));
+}
+
+export function useTasks(): Task[] | undefined {
+  return useLiveQuery(() => db.tasks.toArray());
 }
 
 export function useGoals(): Goal[] | undefined {

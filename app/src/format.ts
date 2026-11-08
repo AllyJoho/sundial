@@ -55,3 +55,13 @@ export function dayLabel(dayStart: number, stepsBack: number): string {
     ? d.toLocaleDateString([], { weekday: 'long' })
     : d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 }
+
+/** "5m ago", "3h ago", "2 days ago": rough and friendly. */
+export function formatAgo(ms: number): string {
+  const min = Math.max(0, Math.round(ms / 60_000));
+  if (min < 60) return `${min}m ago`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.round(h / 24);
+  return d === 1 ? 'yesterday' : `${d} days ago`;
+}

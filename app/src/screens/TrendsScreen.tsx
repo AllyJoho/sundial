@@ -3,12 +3,12 @@
 // as the table of exact numbers, and tap-to-read (tapping is the phone version of hovering).
 import { useMemo, useState } from 'react';
 import type { AppData } from '../App';
-import { formatDuration, formatTime } from '../format';
-import { averageClockTime, formatClockMinutes, inSleepRange, minuteOfDay, targetWake, totalSleep } from '../goals';
-import { UNCATEGORIZED_COLOR, SLEEP_COLOR } from '../hooks';
+import { formatDuration } from '../format';
+import { UNCATEGORIZED_COLOR } from '../hooks';
 import { colorVar } from '../palette';
-import { bucketByDate, getPeriod, goalHitRate, nightsInPeriod, totalsByCategory, UNCATEGORIZED, type DateBucket, type PeriodKind } from '../trends';
-import type { SleepNight } from '../goals';
+import { bucketByDate, getPeriod, goalHitRate, NAP, nightsInPeriod, sleepRows, totalsByCategory, UNCATEGORIZED, type DateBucket, type PeriodKind } from '../trends';
+import { CalendarView } from '../components/CalendarView';
+import { SleepSummary } from '../components/SleepSummary';
 import { describeGoal } from './GoalsPage';
 
 const H = 3600_000;
@@ -28,11 +28,12 @@ export function TrendsScreen({ data }: { data: AppData }) {
   const now = Date.now();
   const period = getPeriod(kind, now, offset);
   const prev = getPeriod(kind, now, offset - 1);
-  const { buckets, prevBuckets, nights } = useMemo(
+  const { buckets, prevBuckets, nights, rows } = useMemo(
     () => ({
       buckets: bucketByDate(period, days, sessions, lib.activities, now),
       prevBuckets: bucketByDate(prev, days, sessions, lib.activities, now),
       nights: nightsInPeriod(period, sessions, days, now),
+      rows: sleepRows(period, sessions, days, now),
     }),
     // Recalculate when the data or the chosen period changes.
     [period.start, kind, days, sessions, lib.activities], // eslint-disable-line react-hooks/exhaustive-deps
@@ -46,6 +47,7 @@ export function TrendsScreen({ data }: { data: AppData }) {
   const series: Series[] = [
     ...lib.categories.map((c) => ({ key: c.id, label: `${c.emoji ?? ''} ${c.name}`.trim(), color: colorVar(c.color) })),
     { key: UNCATEGORIZED, label: 'Uncategorized', color: UNCATEGORIZED_COLOR },
+    { key: NAP, label: '💤 Naps', color: 'var(--nap)' },
   ].filter((s) => (totals.get(s.key) ?? 0) > 0 || (prevTotals.get(s.key) ?? 0) > 0);
 
   const datesWithData = buckets.filter((b) => b.awake > 0).length;
@@ -134,7 +136,13 @@ export function TrendsScreen({ data }: { data: AppData }) {
         )}
       </section>
 
-      <SleepSection data={data} nights={nights} dates={period.dates} kind={kind} />
+      <section className="card">
+        <h3 className="card-title">Calendar</h3>
+        {/* key: a new period starts with nothing picked */}
+        <CalendarView key={period.start} lib={lib} sessions={sessions} period={period} now={now} />
+      </section>
+
+      <SleepSummary data={data} rows={rows} nights={nights} kind={kind} />
 
       {dailyGoals.length > 0 && (
         <section className="card">
@@ -154,47 +162,6 @@ export function TrendsScreen({ data }: { data: AppData }) {
       )}
 
     </div>
-  );
-}
-
-function SleepSection({ data, nights, dates, kind }: { data: AppData; nights: Map<number, SleepNight>; dates: number[]; kind: PeriodKind }) {
-  const { settings, days } = data;
-  const list = [...nights.values()];
-  if (list.length === 0) {
-    return (
-      <section className="card">
-        <h3 className="card-title">Sleep</h3>
-        <p className="muted">No sleep logged in this {kind}.</p>
-      </section>
-    );
-  }
-  const avg = list.reduce((t, n) => t + totalSleep(n, settings), 0) / list.length;
-  const inRange = list.filter((n) => inSleepRange(totalSleep(n, settings), settings)).length;
-  const usualWake = averageClockTime(list.map((n) => minuteOfDay(n.wake)))!;
-  const target = targetWake(settings, days, Date.now());
-  return (
-    <section className="card">
-      <h3 className="card-title">Sleep</h3>
-      <SleepChart key={dates[0]} nights={nights} dates={dates} target={target} windowMinutes={settings.wakeWindowMinutes} kind={kind} />
-      <ul className="stat-list">
-        <li>
-          <span>Average sleep</span>
-          <strong>{formatDuration(avg)}</strong>
-        </li>
-        <li>
-          <span>
-            Nights in your {settings.sleepHoursMin}–{settings.sleepHoursMax}h range
-          </span>
-          <strong>
-            {inRange} of {list.length}
-          </strong>
-        </li>
-        <li>
-          <span>Usual wake time</span>
-          <strong>{formatClockMinutes(usualWake)}</strong>
-        </li>
-      </ul>
-    </section>
   );
 }
 
@@ -284,116 +251,6 @@ function StackedColumns({ buckets, series, kind, focus }: { buckets: DateBucket[
   );
 }
 
-function SleepChart({
-  nights,
-  dates,
-  target,
-  windowMinutes,
-  kind,
-}: {
-  nights: Map<number, SleepNight>;
-  dates: number[];
-  target: number | null;
-  windowMinutes: number;
-  kind: PeriodKind;
-}) {
-  const [sel, setSel] = useState<number | null>(null);
-  const list = [...nights.values()];
-  // Put times on a continuous scale around your usual wake time, so a night that crosses midnight
-  // (or a 4 PM wake-up) draws as one unbroken bar.
-  const anchor = averageClockTime(list.map((n) => minuteOfDay(n.wake))) ?? 480;
-  const unwrap = (m: number) => anchor + ((((m - anchor) % 1440) + 1440 + 720) % 1440) - 720;
-  const bars = new Map(
-    [...nights.entries()].map(([date, n]) => {
-      const wake = unwrap(minuteOfDay(n.wake));
-      return [date, { wake, bed: wake - Math.round((n.wake - n.bed) / 60_000), night: n }];
-    }),
-  );
-  const values = [...bars.values()].flatMap((b) => [b.bed, b.wake]);
-  if (target !== null) values.push(unwrap(target) - windowMinutes, unwrap(target) + windowMinutes);
-  const lo = Math.floor((Math.min(...values) - 30) / 120) * 120;
-  const hi = Math.ceil((Math.max(...values) + 30) / 120) * 120;
-  const span = hi - lo;
-  const tickStep = span > 16 * 60 ? 360 : span > 8 * 60 ? 240 : 120;
-  const yOf = (m: number) => ((m - lo) / span) * PLOT_H; // earlier times at the top
-  const plotW = W - AXIS_W - 22;
-  const slot = plotW / dates.length;
-  const barW = Math.min(24, slot * 0.62);
-  const selBar = sel !== null ? bars.get(sel) : undefined;
-
-  return (
-    <div>
-      <p className="readout" aria-live="polite">
-        {selBar ? (
-          <>
-            <strong>{formatDuration(selBar.night.wake - selBar.night.bed)}</strong>
-            <span className="muted">
-              {' '}
-              · {fmtDate(sel!, true)} · {formatTime(selBar.night.bed)} – {formatTime(selBar.night.wake)}
-            </span>
-          </>
-        ) : (
-          <span className="muted">Bedtime to wake-up, each night</span>
-        )}
-      </p>
-      <svg viewBox={`0 0 ${W} ${PLOT_H + AXIS_H}`} className="chart" role="img" aria-label="Sleep times per night">
-        {Array.from({ length: Math.floor(span / tickStep) + 1 }, (_, i) => lo + i * tickStep).map((m) => (
-          <g key={m}>
-            <line x1={AXIS_W} x2={W - 22} y1={yOf(m)} y2={yOf(m)} className="grid" />
-            <text x={AXIS_W - 4} y={yOf(m) + 4} className="axis-label" textAnchor="end">
-              {shortClock(((m % 1440) + 1440) % 1440)}
-            </text>
-          </g>
-        ))}
-        {target !== null && (
-          <g>
-            <rect
-              x={AXIS_W}
-              width={plotW}
-              y={yOf(unwrap(target) - windowMinutes)}
-              height={yOf(unwrap(target) + windowMinutes) - yOf(unwrap(target) - windowMinutes)}
-              className="target-band"
-            />
-            <text x={W - 20} y={yOf(unwrap(target)) + 4} className="axis-label">
-              wake
-            </text>
-          </g>
-        )}
-        {dates.map((date, i) => {
-          const b = bars.get(date);
-          const cx = AXIS_W + slot * i + slot / 2;
-          return (
-            <g key={date}>
-              {b && (
-                <rect
-                  x={cx - barW / 2}
-                  y={yOf(b.bed)}
-                  width={barW}
-                  height={Math.max(2, yOf(b.wake) - yOf(b.bed))}
-                  rx={Math.min(4, barW / 2)}
-                  fill={SLEEP_COLOR}
-                  opacity={sel !== null && sel !== date ? 0.35 : 1}
-                  className="mark"
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`${fmtDate(date, true)}: slept ${formatTime(b.night.bed)} to ${formatTime(b.night.wake)}`}
-                  onClick={() => setSel(sel === date ? null : date)}
-                  onFocus={() => setSel(date)}
-                />
-              )}
-              {(kind === 'week' || i % 7 === 0) && (
-                <text x={cx} y={PLOT_H + 15} className="axis-label" textAnchor="middle">
-                  {kind === 'week' ? new Date(date).toLocaleDateString([], { weekday: 'narrow' }) : new Date(date).getDate()}
-                </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Small helpers
 // ---------------------------------------------------------------------------
@@ -414,10 +271,6 @@ function roundedTop(x: number, y: number, w: number, h: number, r: number) {
 }
 function fmtDate(t: number, weekday = false) {
   return new Date(t).toLocaleDateString([], weekday ? { weekday: 'short', month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric' });
-}
-function shortClock(m: number) {
-  const h = Math.floor(m / 60);
-  return `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? 'a' : 'p'}`;
 }
 /** "+1h 20m" / "−45m": a plain difference, no good/bad coloring. */
 function signed(ms: number) {

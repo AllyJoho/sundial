@@ -102,6 +102,36 @@ _What we decided to do with all this lives in `product/research-ideas.md` (every
 - People who sleep about 5h overestimate their sleep by about 1.2h. Day-by-day logging is more accurate than "I usually sleep…" ([Lauderdale et al. 2008](https://pubmed.ncbi.nlm.nih.gov/18854708/))
 - Sleep diaries are a **core tool** in CBT-I ([Consensus Sleep Diary](https://pmc.ncbi.nlm.nih.gov/articles/PMC3250369)). Logging alone doesn't fix sleep, but it gives you the data the effective steps need.
 
+### Split sleep, long naps, and what counts as "main sleep" (round 4)
+_Researched because of a real 4½-hour accidental nap. The decisions it led to are in `product/research-ideas.md` → "Sleep classification spec."_
+
+**Is "first sleep / second sleep" natural?** It's a normal thing human sleep *can* do, but it isn't proven to be the "natural" or better way.
+- A historian found many references in pre-industrial European writing to a "first sleep" and "second sleep," with an hour or so awake in between ([Ekirch 2001, *American Historical Review*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11655156/)). Another historian argues those texts can be read differently ([Boyce 2023, *Medical History*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10404514/)). _Contested._
+- In a famous experiment, men given **14 hours of darkness** every night started sleeping in two blocks with 1–3 hours awake in between ([Wehr 1992](https://doi.org/10.1111/j.1365-2869.1992.tb00019.x)). _Small, never directly replicated, and it needed very long nights._
+- Modern hunter-gatherers (Hadza, San, Tsimane) mostly slept in **one block** ([Yetish et al. 2015](https://escholarship.org/content/qt0rk1h44n/qt0rk1h44n.pdf)). But Hadza napped on about half of days ([Samson et al. 2017](https://digitalscholarship.unlv.edu/anthro_fac_articles/382)), and Madagascar farmers napped on 89% of days and often had a waking period after midnight ([Samson et al. 2017](https://doi.org/10.1002/ajhb.22979)). _Observational._
+
+**Total sleep across 24 hours is what matters most for alertness, however it's split.**
+- 90 people on 18 schedules mixing a shorter night with a daytime nap: alertness depended mainly on **total sleep time per 24h**, not how it was divided ([Mollicone et al. 2008](https://rex.libraries.wsu.edu/esploro/outputs/journalArticle/Response-surface-mapping-of-neurobehavioral-performance/99900548095201842)). _Good (lab)._
+- Teens getting the same 6.5h total: **5h night + 1.5h nap did as well or better on alertness, memory, and mood than 6.5h in one block**, but blood sugar control was worse. Both were worse than 9h. ([Lo et al. 2019, *Sleep*](https://www.duke-nus.edu.sg/nbd/sleeplab/publication/publications/detail/index/differential-effects-of-split-and-continuous-sleep-on-vigilance-and-glucose-tolerance-in-sleep-restricted-adolescents)) _Good (RCT, 58 teens)._
+- **Daytime sleep is shorter and lighter than night sleep**, because the body clock pushes you awake during the day. Daytime-only sleepers got the least sleep ([Jackson et al. 2014](https://research.monash.edu/en/publications/investigation-of-the-effectiveness-of-a-split-sleep-schedule-in-s/)). Night-shift workers' day sleep averages about 5–6h ([Rajaratnam et al. 2013](https://www.mja.com.au/journal/2013/199/8/sleep-loss-and-circadian-disruption-shift-work-health-burden-and-management)).
+- **Polyphasic schedules** (e.g., "Uberman," 2h a day in naps): a National Sleep Foundation review found **no evidence of benefit** and links to harm via sleep loss ([Weaver et al. 2021](https://pubmed.ncbi.nlm.nih.gov/33795195/)). _Myth._
+
+**What a 4½-hour daytime sleep is**
+- **It's real sleep:** about three sleep cycles, including deep sleep that uses up the "sleep pressure" built while awake.
+- **That's why a long or early-evening nap makes it harder to fall asleep that night and gives less deep sleep then** ([Werth et al. 1996](https://openresearch.surrey.ac.uk/permalink/44SUR_INST/15d8lgh/alma99515648202346)).
+- **Waking from long, deep sleep causes stronger grogginess** ("sleep inertia"), especially when you were already short on sleep ([Hilditch & McHill 2019](https://www.dovepress.com/sleep-inertia-current-insights-peer-reviewed-fulltext-article-NSS)).
+- **In 440 college students, naps over 2 hours, or more than 3 a week, went with the worst sleep quality.** Naps between 6–9pm went with shorter school-night sleep. ([Ye et al. 2015](https://pubmed.ncbi.nlm.nih.gov/25397662/)) _Observational._ So long, late naps are both a **sign** of sleep debt and a **cause** of later bedtimes. A loop, not a character flaw.
+- **"Long naps are deadly" headlines:** naps of 60+ min/day are linked to more heart disease and death ([Yamada et al. 2015 meta-analysis](https://pmc.ncbi.nlm.nih.gov/articles/PMC4667384/)). But this is observational: sick and sleep-deprived people nap more. It's a **sign of sleep debt, not proof naps cause harm.** Don't put scary claims in the app.
+
+**How others decide "main sleep" vs nap**
+- **There's no official cutoff.** The clinical sleep diary only asks about naps as an optional extra ([Consensus Sleep Diary](https://pmc.ncbi.nlm.nih.gov/articles/PMC3250369/)).
+- A common research wrist-tracker program treats rest periods **longer than 3 hours** as "major" ([Chow et al. 2016](https://www.dovepress.com/defining-the-rest-interval-associated-with-the-main-sleep-period-in-ac-peer-reviewed-fulltext-article-NSS)).
+- Garmin reportedly counts naps only if **under 3 hours** (secondary source).
+- Fitbit marks the **longest sleep of the day** as main.
+- Oura detects naps of 15+ minutes.
+- **So 3 hours is a sensible software convention, not biology.**
+- The **Sleep Regularity Index** counts all sleep, naps included, as "asleep." It doesn't care which block is "main."
+
 ---
 
 ## Part 2: "Dopamine addiction," phones, and compulsive habits
@@ -521,6 +551,11 @@ Each one is checked against the sources above. Keep the citation with the tip.
 44. Doing only the behavioral part of therapy changed negative thoughts about as much as full cognitive therapy. _(Jacobson et al. 1996)_
 45. A behavioral activation app session took about 3.5 minutes on average. _(Dahne et al. 2019)_
 46. White noise slightly helps people with ADHD focus, and slightly hurts everyone else. _(Nigg et al. 2024)_
+47. Give people 14 hours of darkness and their sleep splits into two halves with a quiet wake in the middle. _(Wehr 1992)_
+48. Chaucer wrote of a character waking "after her first sleep," one of hundreds of old references to a "second sleep." _(Ekirch)_
+49. Teens who split the same 6.5 hours into a night plus a nap were as alert as or more alert than those who slept it in one go. _(Lo et al. 2019)_
+50. Madagascar farmers napped on 89% of days. _(Samson et al. 2017)_
+51. Hunter-gatherers fell asleep about 3 hours after sunset, not at dusk. _(Yetish et al. 2015)_
 
 ---
 
@@ -554,6 +589,7 @@ Each one is checked against the sources above. Keep the citation with the tip.
 |---|---|---|---|
 | 1 | Nov 2026 | Sleep; dopamine & phones; self-tracking & streaks; time management & procrastination | 4 parallel research passes, ~150 searches |
 | 2 | Nov 2026 | Behavioral activation & calendars; iPhone feasibility; feedback/social/nudges | 3 passes. Hit the session's web search limit partway through |
+| 4 | Nov 2026 | Split/segmented sleep, long naps, how "main sleep" is defined | ~35 searches, no limit hit |
 | 3 | Nov 2026 | Open questions (bedtime reminders, pets, co-working, days-needed, sleep restriction safety, Deci, Hawthorne); fact-check of every unverified claim | Search limit hit almost immediately. Verified by opening primary sources directly where possible |
 
 **To research more later:** the items in "Not verified" above. A longer research session needs a higher web-search limit (the `CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION` setting).

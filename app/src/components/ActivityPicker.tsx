@@ -1,43 +1,6 @@
-// A dropdown for choosing what a block of time was: any activity, or sleep/nap.
+// Activities grouped by category (used by the "All activities" list).
 import type { Library } from '../hooks';
 import type { Activity } from '../types';
-
-/** Values look like "act:<id>", "sleep:main", or "sleep:nap". */
-export function ActivitySelect({
-  lib,
-  value,
-  onChange,
-  includeSleep = true,
-}: {
-  lib: Library;
-  value: string;
-  onChange: (v: string) => void;
-  includeSleep?: boolean;
-}) {
-  const groups = activityGroups(lib, value.startsWith('act:') ? value.slice(4) : undefined);
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value="" disabled>
-        Choose…
-      </option>
-      {includeSleep && (
-        <optgroup label="Sleep">
-          <option value="sleep:main">🌙 Sleep</option>
-          <option value="sleep:nap">💤 Nap</option>
-        </optgroup>
-      )}
-      {groups.map((g) => (
-        <optgroup key={g.key} label={g.name}>
-          {g.activities.map((a) => (
-            <option key={a.id} value={`act:${a.id}`}>
-              {lib.emoji(a)} {lib.label(a)}
-            </option>
-          ))}
-        </optgroup>
-      ))}
-    </select>
-  );
-}
 
 /** Activities grouped by category, parents followed by their sub-activities. Archived ones are hidden. */
 export function activityGroups(lib: Library, keepId?: string) {

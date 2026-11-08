@@ -1,7 +1,7 @@
 // Automated checks for days, streaks, check-ins and overlaps. Run with: npm test
 import { describe, expect, it } from 'vitest';
 import { getDayState } from './day';
-import { detectCheckIn, gapChunks, getStreak, listDays, needsRebuild, planInsert, RECOVERY_WINDOW_MS } from './days';
+import { countsForStreak, detectCheckIn, getStreak, listDays, moreNeededMs, planInsert, RECOVERY_WINDOW_MS } from './days';
 import { stillDoingCheck, typicalLength } from './nudges';
 import type { DayReview, Session } from './types';
 
@@ -19,6 +19,11 @@ const review = (sleepId: string, closedAt: number): DayReview => ({ id: `r${n++}
 /** A run of normal nights: sleep 23:00–07:00 for `count` nights, starting the night before day 0. */
 function nights(count: number) {
   return Array.from({ length: count }, (_, i) => sleep(i * D - 1 * H, i * D + 7 * H));
+}
+
+/** Adds 14h of activity to each day between the given sleeps (days are 16h long, so they're well over half tracked). */
+function withActivity(sleeps: Session[]) {
+  return [...sleeps, ...sleeps.slice(0, -1).map((sl) => act(sl.end! + 1 * H, sl.end! + 15 * H))];
 }
 
 describe('listDays', () => {
@@ -42,27 +47,27 @@ describe('getStreak', () => {
   it('counts closed days in a row', () => {
     const s = nights(4);
     const r = s.slice(1).map((x) => review(x.id, x.start));
-    expect(getStreak(listDays(s, r), 3 * D + 10 * H)).toMatchObject({ count: 3, recoverable: [] });
+    expect(getStreak(listDays(withActivity(s), r), 3 * D + 10 * H)).toMatchObject({ count: 3, recoverable: [] });
   });
 
   it('a missing review breaks the streak once the recovery window passes', () => {
     const s = nights(4);
     const r = [review(s[1].id, s[1].start), review(s[3].id, s[3].start)]; // the day closed by s[2] was never reviewed
-    expect(getStreak(listDays(s, r), 3 * D + 10 * H).count).toBe(2); // still inside the window: pending, not broken
-    expect(getStreak(listDays(s, r), 5 * D).count).toBe(1); // window passed: starts over
+    expect(getStreak(listDays(withActivity(s), r), 3 * D + 10 * H).count).toBe(2); // still inside the window: pending, not broken
+    expect(getStreak(listDays(withActivity(s), r), 5 * D).count).toBe(1); // window passed: starts over
   });
 
   it('recent unclosed days are recoverable and do not break the streak yet', () => {
     const s = nights(4);
     const r = [review(s[1].id, s[1].start), review(s[2].id, s[2].start)];
-    const streak = getStreak(listDays(s, r), 3 * D + 10 * H);
+    const streak = getStreak(listDays(withActivity(s), r), 3 * D + 10 * H);
     expect(streak.count).toBe(2);
     expect(streak.recoverable).toHaveLength(1);
   });
 
   it('a day closed after the recovery window does not count', () => {
     const s = nights(2);
-    const days = listDays(s, [review(s[1].id, s[1].start + RECOVERY_WINDOW_MS + H)]);
+    const days = listDays(withActivity(s), [review(s[1].id, s[1].start + RECOVERY_WINDOW_MS + H)]);
     expect(getStreak(days, 5 * D).count).toBe(0);
   });
 });
@@ -111,16 +116,26 @@ describe('planInsert', () => {
   });
 });
 
-describe('gap fill', () => {
-  it('only asks about gaps of an hour or more', () => {
-    const s = [act(0, 1 * H), act(1.5 * H, 2 * H), act(4 * H, 5 * H)];
-    expect(gapChunks(s, 0, 5 * H, false)).toEqual([{ start: 2 * H, end: 4 * H }]);
+describe('tracked time and the half-day rule', () => {
+  it('counts overlapping blocks once, and naps count as tracked', () => {
+    const s = [...nights(2), act(8 * H, 10 * H), act(9 * H, 11 * H), sleep(12 * H, 13 * H, 'nap')];
+    expect(listDays(s, [])[0].trackedMs).toBe(4 * H); // 8–11 covered (3h) + 1h nap
   });
 
-  it('a mostly-untracked day needs rebuilding, in rough blocks', () => {
-    const s = [act(0, 1 * H)];
-    expect(needsRebuild(s, 0, 16 * H)).toBe(true);
-    expect(gapChunks(s, 0, 16 * H, true)).toHaveLength(4); // 15h split into ≤4h blocks
+  it('a closed day under half tracked does not count, but can still be filled in', () => {
+    const s = [...nights(2), act(8 * H, 12 * H)]; // 4h of a 16h day
+    const r = [review(s[1].id, s[1].start)];
+    const day = listDays(s, r)[0];
+    expect(countsForStreak(day)).toBe(false);
+    expect(moreNeededMs(day, D)).toBe(4 * H + 60_000); // half is 8h, plus a minute to be "more than" half
+    const streak = getStreak(listDays(s, r), D + 8 * H);
+    expect(streak.count).toBe(0);
+    expect(streak.recoverable).toHaveLength(1);
+  });
+
+  it('filling it in past half makes it count', () => {
+    const s = [...nights(2), act(8 * H, 12 * H), act(12 * H, 17 * H)]; // 9h of 16h
+    expect(countsForStreak(listDays(s, [review(s[1].id, s[1].start)])[0])).toBe(true);
   });
 });
 
@@ -132,13 +147,13 @@ describe('streak freezes', () => {
 
   it('earns a freeze after 7 days in a row', () => {
     const { s, r } = closedNights(9); // 8 closed days
-    expect(getStreak(listDays(s, r), 9 * D).freezes).toBe(1);
+    expect(getStreak(listDays(withActivity(s), r), 9 * D).freezes).toBe(1);
   });
 
   it('a freeze covers a missed day instead of resetting the streak', () => {
     const { s, r } = closedNights(11);
     const missed = s[8].id; // leave one day unclosed, long ago
-    const days = listDays(s, r.filter((x) => x.sleepId !== missed));
+    const days = listDays(withActivity(s), r.filter((x) => x.sleepId !== missed));
     const streak = getStreak(days, 20 * D);
     expect(streak.count).toBe(9); // 10 closed days, minus the missed one, which didn't add
     expect(streak.freezes).toBe(0);
@@ -147,7 +162,7 @@ describe('streak freezes', () => {
 
   it('without a freeze, a missed day resets the streak', () => {
     const { s, r } = closedNights(5);
-    const days = listDays(s, r.filter((x) => x.sleepId !== s[2].id));
+    const days = listDays(withActivity(s), r.filter((x) => x.sleepId !== s[2].id));
     expect(getStreak(days, 20 * D).count).toBe(2);
   });
 });

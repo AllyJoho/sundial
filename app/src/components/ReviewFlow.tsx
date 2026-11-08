@@ -1,34 +1,38 @@
-// Closing out a day: look at the timeline, fill in big gaps, rate mood/energy, add a note.
-// Two uses: "Goodnight" (tonight, ends with starting your sleep) and closing out a past day
-// (forgot goodnight, or rebuilding a missed day to keep a streak). See product/features.md sections 5 and 8.
+// Closing out a day: look at the timeline, fill in or fix anything (tap a gap or a block, set your own
+// times), then rate mood/energy and add a note. Two uses: "Goodnight" (tonight, ends with starting your
+// sleep) and closing out a past day. See product/features.md sections 5 and 8, and Sun Check 2026-11-07.
 import { useMemo, useState } from 'react';
-import { placeSession, saveReview, startSleep } from '../actions';
-import { DOWNTIME_ID } from '../db';
-import { gapChunks, needsRebuild, type Day } from '../days';
-import { formatDayTime, formatDuration, formatTime } from '../format';
+import { carryTasks, saveReview, startSleep } from '../actions';
+import { coveredWithin, mergeIntervals, STREAK_MIN_TRACKED, type Day } from '../days';
+import { formatDayTime, formatDuration } from '../format';
 import type { Library } from '../hooks';
-import type { Activity, DayReview, Session } from '../types';
-import { ActivitySelect } from './ActivityPicker';
+import { defaultCarry } from '../tasks';
+import type { DayReview, Session, Task } from '../types';
 import { DayTimeline } from './DayTimeline';
+import { SessionEditor, type SessionDraft } from './SessionEditor';
 import { Sheet } from './Sheet';
 
 export type ReviewMode =
   | { kind: 'goodnight'; dayStart: number; bedtime: number }
-  | { kind: 'close'; day: Day; label: string };
+  | { kind: 'close'; day: Day; label: string; initialStep?: 'timeline' | 'feel' };
 
-type Step = 'timeline' | 'gaps' | 'feel';
+type Step = 'timeline' | 'tasks' | 'feel';
+type Carry = 'today' | 'later' | 'remove';
 
-const MOODS = ['😞', '🙁', '😐', '🙂', '😄'];
-const ENERGY = ['🪫', '😮‍💨', '😐', '⚡', '🔥'];
+export const MOODS = ['😞', '🙁', '😐', '🙂', '😄'];
+export const ENERGY = ['🪫', '😮‍💨', '😐', '⚡', '🔥'];
 
 export function ReviewFlow({
   lib,
   sessions,
+  tasks = [],
   mode,
   onClose,
 }: {
   lib: Library;
   sessions: Session[];
+  /** For goodnight: today's unfinished tasks get Tomorrow / Later / Remove. */
+  tasks?: Task[];
   mode: ReviewMode;
   onClose: () => void;
 }) {
@@ -36,27 +40,25 @@ export function ReviewFlow({
   const end = mode.kind === 'goodnight' ? mode.bedtime : mode.day.end!;
   const existing: DayReview | undefined = mode.kind === 'close' ? mode.day.review : undefined;
 
-  // Freeze the gaps when the flow opens, so filling one doesn't reshuffle the list.
-  const [{ rebuild, chunks }] = useState(() => {
-    const rebuild = mode.kind === 'close' && !existing && needsRebuild(sessions, start, end);
-    return { rebuild, chunks: gapChunks(sessions, start, end, rebuild) };
-  });
-  const [step, setStep] = useState<Step>(existing ? 'feel' : 'timeline');
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  // Editing an existing review jumps to mood/energy, unless asked to start at the timeline (e.g. to fill it in).
+  const [step, setStep] = useState<Step>((mode.kind === 'close' && mode.initialStep) || (existing ? 'feel' : 'timeline'));
+  const [editing, setEditing] = useState<{ session?: Session; draft?: SessionDraft } | null>(null);
   const [mood, setMood] = useState<number | undefined>(existing?.mood);
   const [energy, setEnergy] = useState<number | undefined>(existing?.energy);
   const [note, setNote] = useState(existing?.note ?? '');
   const [busy, setBusy] = useState(false);
 
-  const allAnswered = chunks.every((_, i) => answers[i] && answers[i] !== 'skip');
+  // Goodnight: what happens to today's unfinished to-dos (decided when the review opens).
+  const [unfinished] = useState(() => (mode.kind === 'goodnight' ? tasks.filter((t) => t.list === 'today' && !t.doneAt) : []));
+  const [carry, setCarry] = useState<Record<string, Carry>>(() => Object.fromEntries(unfinished.map((t) => [t.id, defaultCarry(unfinished)])));
 
-  async function saveGaps() {
-    for (const [i, value] of Object.entries(answers)) {
-      if (!value.startsWith('act:')) continue;
-      const c = chunks[Number(i)];
-      await placeSession({ kind: 'activity', activityId: value.slice(4), start: c.start, end: c.end, source: 'manual' });
-    }
-  }
+  // How much of the day is tracked (overlapping blocks count once). Updates live as you fill things in.
+  const tracked = useMemo(
+    () => coveredWithin(mergeIntervals(sessions.filter((s) => !(s.kind === 'sleep' && s.sleepType === 'main')), end), start, end),
+    [sessions, start, end],
+  );
+  const length = end - start;
+  const moreNeeded = Math.max(0, Math.floor(length * STREAK_MIN_TRACKED) + 60_000 - tracked);
 
   async function finish(withFeelings: boolean) {
     if (busy) return;
@@ -64,6 +66,7 @@ export function ReviewFlow({
     try {
       const fields = withFeelings ? { mood, energy, note: note.trim() || undefined } : {};
       if (mode.kind === 'goodnight') {
+        if (withFeelings && unfinished.length) await carryTasks(carry);
         const sleepId = await startSleep('main', mode.bedtime);
         await saveReview(sleepId, fields);
       } else {
@@ -76,19 +79,43 @@ export function ReviewFlow({
   }
 
   const title =
-    mode.kind === 'goodnight' ? 'Goodnight' : existing ? `${mode.label}: review` : rebuild ? `Rebuild ${mode.label}` : `Close out ${mode.label}`;
+    mode.kind === 'goodnight'
+      ? 'Goodnight'
+      : existing
+        ? step === 'timeline'
+          ? `Fill in ${mode.label}`
+          : `${mode.label}: review`
+        : `Close out ${mode.label}`;
 
   return (
     <Sheet title={title} onClose={onClose}>
       {step === 'timeline' && (
         <>
           <p className="muted" style={{ margin: 0 }}>
-            {formatDayTime(start)} – {formatDayTime(end)} · {formatDuration(end - start)} awake
+            {formatDayTime(start)} – {formatDayTime(end)} · {formatDuration(length)} awake
           </p>
-          <DayTimeline lib={lib} sessions={sessions} start={start} end={end} />
+          <p className="small" style={{ margin: 0 }}>
+            {moreNeeded > 0 ? (
+              <>
+                Tap a gap to fill it in with your own times. <span className="muted">Fill in {formatDuration(moreNeeded)} more to count this day toward
+                your streak. Untracked time is allowed either way.</span>
+              </>
+            ) : (
+              <span className="muted">Tap any gap or block to fill it in or fix it. Untracked time is allowed.</span>
+            )}
+          </p>
+          <DayTimeline
+            lib={lib}
+            sessions={sessions}
+            start={start}
+            end={end}
+            askAboutGaps
+            onEditSession={(s) => setEditing({ session: s })}
+            onFillGap={(g) => setEditing({ draft: g })}
+          />
           <div className="sheet-actions sticky-actions">
-            <button className="btn primary" onClick={() => setStep(chunks.length ? 'gaps' : 'feel')}>
-              {chunks.length ? 'Next: fill in gaps' : 'Next'}
+            <button className="btn primary" onClick={() => setStep(unfinished.length ? 'tasks' : 'feel')}>
+              Next
             </button>
           </div>
           {mode.kind === 'goodnight' && (
@@ -99,45 +126,37 @@ export function ReviewFlow({
         </>
       )}
 
-      {step === 'gaps' && (
+      {step === 'tasks' && (
         <>
-          {rebuild ? (
-            <p className="muted" style={{ margin: 0 }}>
-              Most of this day wasn't tracked. To close it out, sketch it in rough blocks. A best guess is fine, and
-              "Downtime" counts.
-            </p>
-          ) : (
-            <p className="muted" style={{ margin: 0 }}>
-              What were these? Skip any you don't remember. Untracked time is allowed.
-            </p>
-          )}
-          {chunks.map((c, i) => (
-            <GapQuestion
-              key={c.start}
-              lib={lib}
-              sessions={sessions}
-              start={c.start}
-              end={c.end}
-              value={answers[i]}
-              canSkip={!rebuild}
-              onChange={(v) => setAnswers((a) => ({ ...a, [i]: v }))}
-            />
-          ))}
+          <p className="muted" style={{ margin: 0 }}>
+            Not done today, and that's OK. What should happen to {unfinished.length === 1 ? 'it' : 'each one'}?
+          </p>
+          <ul className="carry-list">
+            {unfinished.map((t) => (
+              <li key={t.id} className="card carry-row">
+                <div className="task-title">{t.title}</div>
+                <div className="segmented" role="group" aria-label={`What to do with ${t.title}`}>
+                  {(
+                    [
+                      ['today', 'Tomorrow'],
+                      ['later', 'Later'],
+                      ['remove', 'Remove'],
+                    ] as const
+                  ).map(([value, text]) => (
+                    <button key={value} className={carry[t.id] === value ? 'on' : ''} onClick={() => setCarry({ ...carry, [t.id]: value })}>
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="muted small" style={{ margin: 0 }}>
+            "Later" keeps everything (notes, due date, hours). "Remove" is for one-day things.
+          </p>
           <div className="sheet-actions sticky-actions">
-            <button
-              className="btn primary"
-              disabled={(rebuild && !allAnswered) || busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await saveGaps();
-                  setStep('feel');
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              {rebuild && !allAnswered ? `Answer all ${chunks.length} to continue` : 'Next'}
+            <button className="btn primary" onClick={() => setStep('feel')}>
+              Next
             </button>
           </div>
         </>
@@ -156,8 +175,13 @@ export function ReviewFlow({
               {mode.kind === 'goodnight' ? 'Good night 🌙' : existing ? 'Save' : 'Close out day ✓'}
             </button>
           </div>
+          <button className="link-btn center" onClick={() => setStep(unfinished.length && !existing ? 'tasks' : 'timeline')}>
+            ‹ {existing ? 'See or edit the timeline' : 'Back'}
+          </button>
         </>
       )}
+
+      {editing && <SessionEditor lib={lib} sessions={sessions} session={editing.session} draft={editing.draft} onClose={() => setEditing(null)} />}
     </Sheet>
   );
 }
@@ -184,67 +208,4 @@ function Scale({ label, icons, value, onChange }: { label: string; icons: string
       </div>
     </div>
   );
-}
-
-/** One "What was this?" card with quick choices. */
-function GapQuestion({
-  lib,
-  sessions,
-  start,
-  end,
-  value,
-  canSkip,
-  onChange,
-}: {
-  lib: Library;
-  sessions: Session[];
-  start: number;
-  end: number;
-  value?: string;
-  canSkip: boolean;
-  onChange: (v: string) => void;
-}) {
-  const [more, setMore] = useState(false);
-  const choices = useMemo(() => quickChoices(lib, sessions), [lib, sessions]);
-  const chosenId = value?.startsWith('act:') ? value.slice(4) : undefined;
-  const chosenIsQuick = !chosenId || choices.some((a) => a.id === chosenId);
-
-  return (
-    <div className="card gap-q">
-      <div className="gap-q-time">
-        {formatTime(start)} – {formatTime(end)} <span className="muted">· {formatDuration(end - start)}</span>
-      </div>
-      <div className="chips">
-        {choices.map((a) => (
-          <button key={a.id} className={`chip ${chosenId === a.id ? 'on' : ''}`} onClick={() => onChange(`act:${a.id}`)}>
-            {lib.emoji(a)} {lib.label(a)}
-          </button>
-        ))}
-        <button className={`chip ${more || !chosenIsQuick ? 'on-outline' : ''}`} onClick={() => setMore(!more)}>
-          Other…
-        </button>
-        {canSkip && (
-          <button className={`chip ${value === 'skip' ? 'on' : ''}`} onClick={() => onChange('skip')}>
-            Skip
-          </button>
-        )}
-      </div>
-      {(more || !chosenIsQuick) && (
-        <ActivitySelect lib={lib} value={value?.startsWith('act:') ? value : ''} onChange={onChange} includeSleep={false} />
-      )}
-    </div>
-  );
-}
-
-/** Downtime, favorites, then recently used: the things you're most likely to pick. */
-export function quickChoices(lib: Library, sessions: Session[]): Activity[] {
-  const out: Activity[] = [];
-  const add = (a?: Activity) => a && !a.archived && !out.some((x) => x.id === a.id) && out.push(a);
-  add(lib.activityById.get(DOWNTIME_ID));
-  for (let i = sessions.length - 1; i >= 0 && out.length < 6; i--) {
-    const s = sessions[i];
-    if (s.kind === 'activity' && s.activityId) add(lib.activityById.get(s.activityId));
-  }
-  lib.activities.filter((a) => a.favorite).forEach((a) => out.length < 6 && add(a));
-  return out;
 }

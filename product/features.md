@@ -22,18 +22,19 @@ Everything we've designed so far. For build order, see `roadmap.md`.
 **Category → Activity → Sub-activity**, for example:
 - Productive → Homework → CS 235
 - Leisure → Gaming
-- Low-value leisure → Scrolling
+- Scrolling & screens → Scrolling
 - Sleep → Main sleep / Nap (built in)
 
 - The user names and edits categories.
-- **Quick add** creates an activity instantly as "uncategorized." Sort it out later.
+- **"What are you doing?"** box on the home screen: type a few letters to find a past activity, or type something new (like "took a test") to start it. New ones are saved as "uncategorized"; sort them later. _(Sun Check 2026-11-07)_
 - Easy to rename, re-categorize, merge, and archive.
 - Optional colors and emoji per activity or category.
 
 ## 3. Tracking time
 
-- **Clock in / clock out.** Starting a new activity automatically stops the current one, so only one activity runs at a time.
-- **Recents and favorites** appear as big tap targets on the home screen.
+- **Clock in / clock out.** Starting a new activity automatically stops the current one, so only one *live* timer runs at a time. (Two live timers at once is a "revisit later" idea.)
+- **"Your usual"** tiles on the home screen: about 6 big tap targets that learn from what you use most (★ pins one). One-offs don't become tiles. 💤 **Nap** is always one of them.
+- **Multitasking:** blocks may overlap when you edit or fill in time ("Keep both"). Each activity counts its full time; day summaries say "includes Xm multitasking".
 - **After-the-fact logging:** "I did laundry for 30 min, ended 10 min ago."
 - **"Still doing X?"** nudge when a timer runs much longer than usual for that activity.
 - **Routines:** one tap starts a sequence, like "morning routine."
@@ -41,19 +42,32 @@ Everything we've designed so far. For build order, see `roadmap.md`.
 
 ## 4. Reviewing & editing
 
-- **Today's timeline:** visual blocks you can tap to edit start/end times, change activity, split, or delete.
+- **Today tab = dashboard + diary** (MyFitnessPal-style, Sun Check 2026-11-07 "Today and Plan"): the live timer and quick start on top, a summary (awake / tracked, tap for details), goals and sleep, then the **diary** (the day's timeline as one list, with **+ Add**), then **"To do today"**. **"Complete today"** at the bottom is goodnight. **‹ ›** goes to past days (diary only).
+- **Center + button** in the tab bar logs from any tab: what are you doing, log past time, nap, going to bed, just woke up.
+- Tap any block to edit start/end times, change activity, or delete it.
 - **Untracked time** shows as gaps. Downtime is allowed. Gaps get collected at the end of the day.
-- **Edit any past day**, with extra-easy access to **yesterday**.
+- **Edit any past day**, with extra-easy access to **yesterday**. You fix a past day the same way as today: open its timeline and tap a gap or block to fill it in with your own times.
+- **Log a missed sleep any time** ("Just woke up? Log the sleep you missed"), so you never have to wait for the check-in.
 
 ## 5. Goodnight flow (end of day)
 
 1. Show the day's timeline.
-2. **Gap fill:** any untracked stretch **over 1 hour** gets a prompt: "What was this?" You can skip it or mark it as downtime.
+2. **Gap fill:** the timeline is editable; untracked stretches **over 1 hour** are labeled "What was this?" Tap one to fill it in with your own times, or leave it. Untracked time is allowed.
 3. Rate **mood** and **energy** (1–5).
 4. Optional one-line note: "How was today?"
 5. Start sleep. This closes the day and counts it toward the streak.
 
-## 6. Goals
+## 5b. To-do list (Sun Check 2026-11-07, "To-do list")
+
+- **"To do today"** at the bottom of Today; type a line to add, ✓ to check off. Done items show until the day ends.
+- **Later** list (folded up) for everything else, sorted by due date; "Do today" moves an item up. It moves to the Plan tab once Plan exists.
+- Optional details: **notes / instructions**, **due date** ("due Fri", then a plain "was due Tue"), **only-during hours** (e.g. business hours Mon–Fri 9–5: "open now · until 5 PM" / "opens Mon 9 AM").
+- **"Open right now"** card at the top of Today while a task's hours are open.
+- **Goodnight:** each unfinished task → **Tomorrow / Later / Remove**. If 2+ are left, Later is pre-selected, so the list never piles up.
+- Optional **"Add to iPhone Calendar"** (.ics; Calendar sends the alert). Off by default (More → To-do list).
+- Later: a steps checklist inside a task.
+
+
 
 Works like calorie goals:
 - **Minimum** ("at least 3h homework") or **limit** ("under 1h scrolling").
@@ -84,10 +98,10 @@ Sleep stats: total sleep, naps, wake-time consistency, sleep debt.
 
 ## 8. Streaks (calorie-tracker style)
 
-- A day counts once it's **closed out** with goodnight or a review.
-- **Recovery:** missed days can be backfilled within **~2 days** and the streak comes back.
-- **Recovery isn't free:** you have to enter wake/sleep times plus rough blocks ("morning: class, afternoon: homework, evening: games"). It's quick but real.
-- A banner appears when a streak can be recovered: "Yesterday's unfinished — rebuild it to keep your 12-day streak."
+- A day counts once it's **closed out** with goodnight or a review **and more than half of it is tracked** (overlapping blocks count once here). _(Sun Check 2026-11-07)_
+- **Recovery:** within **~2 days**, an unclosed or under-half day can be closed out or filled in, and the streak comes back.
+- **Recovery isn't free:** getting a day past the "more than half" bar takes real filling-in, done in the normal timeline.
+- A banner appears when a streak can be recovered: "Yesterday isn't closed out yet…" or "…less than half is filled in. Fill in 3h more to keep your 12-day streak."
 - **Freeze days** are a possible add-on.
 
 ## 9. Reviews & progress

@@ -1,6 +1,7 @@
 // Manage categories, activities, and sub-activities.
 import { useState } from 'react';
 import { createActivity, createCategory, updateActivity, updateCategory } from '../actions';
+import { ChipChoice } from '../components/Choice';
 import { Sheet } from '../components/Sheet';
 import { db } from '../db';
 import { UNCATEGORIZED_COLOR, type Library } from '../hooks';
@@ -57,7 +58,7 @@ export function ActivitiesScreen({ lib }: { lib: Library }) {
     <div className="screen">
       <header className="day-header">
         <div className="day-title">Activities</div>
-        <div className="muted">★ = shows on the home screen. Tap a name to edit.</div>
+        <div className="muted">★ = always in "Your usual" on the home screen (otherwise it learns from what you use). Tap a name to edit.</div>
       </header>
 
       {uncategorized.length > 0 && (
@@ -124,11 +125,13 @@ function ActivityEditor({
   const [emoji, setEmoji] = useState(activity?.emoji ?? '');
   const [categoryId, setCategoryId] = useState<string | null>(initialCat);
   const [parentId, setParentId] = useState<string | null>(initialParent);
-  const [favorite, setFavorite] = useState(activity?.favorite ?? true);
+  const [favorite, setFavorite] = useState(activity?.favorite ?? false);
 
   // Possible parents: top-level activities in the same category (and not this one).
   const hasSubs = !!activity && lib.activities.some((a) => a.parentId === activity.id);
-  const parents = lib.activities.filter((a) => !a.parentId && !a.archived && a.id !== activity?.id && a.categoryId === categoryId);
+  const parents = lib.activities.filter(
+    (a) => !a.parentId && !a.archived && a.id !== activity?.id && a.id !== '#act-downtime' && a.categoryId === categoryId,
+  );
 
   async function save() {
     const clean = name.trim();
@@ -157,48 +160,41 @@ function ActivityEditor({
       <div className="field-row">
         <label className="field emoji-field">
           <span>Emoji</span>
-          <input value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder="🙂" maxLength={4} />
+          <input value={emoji} onChange={(e) => setEmoji(oneEmoji(e.target.value))} aria-label="Emoji" />
         </label>
         <label className="field grow">
           <span>Name</span>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. CS 235" autoFocus={!activity} />
         </label>
       </div>
-      <label className="field">
-        <span>Category</span>
-        <select
-          value={categoryId ?? ''}
-          onChange={(e) => {
-            setCategoryId(e.target.value || null);
-            setParentId(null);
-          }}
-        >
-          <option value="">Uncategorized</option>
-          {lib.categories
+      <ChipChoice<string | null>
+        label="Category"
+        value={categoryId}
+        onChange={(v) => {
+          setCategoryId(v);
+          setParentId(null);
+        }}
+        options={[
+          ...lib.categories
             .filter((c) => !c.archived || c.id === categoryId)
-            .map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.emoji} {c.name}
-              </option>
-            ))}
-        </select>
-      </label>
-      {!hasSubs && (
-        <label className="field">
-          <span>Part of (optional)</span>
-          <select value={parentId ?? ''} onChange={(e) => setParentId(e.target.value || null)}>
-            <option value="">Nothing. This is its own activity.</option>
-            {parents.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.emoji} {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            .map((c) => ({ value: c.id, label: `${c.emoji ?? ''} ${c.name}`.trim() })),
+          { value: null, label: 'Uncategorized' },
+        ]}
+      />
+      {!hasSubs && parents.length > 0 && (
+        <ChipChoice<string | null>
+          label="Part of (optional)"
+          value={parentId}
+          onChange={setParentId}
+          options={[
+            { value: null, label: 'Nothing (its own activity)' },
+            ...parents.map((p) => ({ value: p.id, label: `${p.emoji ?? ''} ${p.name}`.trim() })),
+          ]}
+        />
       )}
       <label className="check">
         <input type="checkbox" checked={favorite} onChange={(e) => setFavorite(e.target.checked)} />
-        Show on home screen (favorite)
+        Always show in "Your usual" (★)
       </label>
       <div className="sheet-actions">
         <button className="btn primary" onClick={save} disabled={!name.trim()}>
@@ -234,7 +230,7 @@ function CategoryEditor({ category, used, onClose }: { category?: Category; used
       <div className="field-row">
         <label className="field emoji-field">
           <span>Emoji</span>
-          <input value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder="🙂" maxLength={4} />
+          <input value={emoji} onChange={(e) => setEmoji(oneEmoji(e.target.value))} aria-label="Emoji" />
         </label>
         <label className="field grow">
           <span>Name</span>
@@ -273,4 +269,15 @@ function CategoryEditor({ category, used, onClose }: { category?: Category; used
       </div>
     </Sheet>
   );
+}
+
+// Keep the emoji box to a single character. Emoji like 👍🏽 or 👨‍👩‍👧 are made of several pieces under
+// the hood, so we count what you see on screen, not raw pieces. Keeps the newest one typed,
+// so tapping a new emoji replaces the old one.
+function oneEmoji(text: string): string {
+  const t = text.trim();
+  // Intl.Segmenter is built into iPhone Safari; the project's TypeScript settings just don't list it yet.
+  const Seg = (Intl as unknown as { Segmenter?: new (l?: string, o?: object) => { segment(s: string): Iterable<{ segment: string }> } }).Segmenter;
+  const parts = Seg ? [...new Seg(undefined, { granularity: 'grapheme' }).segment(t)].map((p) => p.segment) : Array.from(t);
+  return parts.length ? parts[parts.length - 1] : '';
 }

@@ -71,7 +71,11 @@ When sync is turned on, each device asks once whether to copy its earlier data i
 | `src/palette.ts` | Category colors (tested for color blindness), light/dark versions |
 | `src/actions.ts` | Everything that changes data |
 | `src/hooks.ts` | Reads live data for the screens |
-| `src/App.tsx` | The app shell and tabs (Now, Days, Trends, More) |
+| `src/App.tsx` | The app shell and tab bar: Today · Plan · (+) · Trends · More |
+| `src/screens/TodayScreen.tsx` | The Today tab: live timer, quick start, summary, and the diary (any day, with ‹ ›) |
+| `src/tasks.ts` | To-do logic: open hours, due labels, the optional calendar file |
+| `src/components/TodoList.tsx` | "To do today", the Later list, and the "Open right now" card |
+| `src/components/QuickLog.tsx` | The center + menu, and the goodnight / log past time / "just woke up" flows |
 | `src/screens/` | The tabs and the pages inside More |
 | `src/components/` | Shared pieces: sheets, editors, review flow, check-in cards, goal bars, timeline |
 | `src/styles.css` | All styling, including dark mode |

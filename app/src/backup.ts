@@ -3,7 +3,7 @@
 //  - CSV: your time blocks as a spreadsheet (open in Numbers, Excel, Google Sheets).
 import { db } from './db';
 import { renameFixedIds } from './ids';
-import type { Activity, Category, DayReview, Goal, Routine, Session, Settings } from './types';
+import type { Activity, Category, DayReview, Goal, Routine, Session, Settings, Task } from './types';
 
 export interface Backup {
   app: 'sundial';
@@ -17,10 +17,11 @@ export interface Backup {
   goals: Goal[];
   settings: Settings[];
   routines: Routine[];
+  tasks: Task[];
 }
 
 export async function makeBackup(): Promise<Backup> {
-  const [categories, activities, sessions, reviews, goals, settings, routines] = await Promise.all([
+  const [categories, activities, sessions, reviews, goals, settings, routines, tasks] = await Promise.all([
     db.categories.toArray(),
     db.activities.toArray(),
     db.sessions.toArray(),
@@ -28,8 +29,9 @@ export async function makeBackup(): Promise<Backup> {
     db.goals.toArray(),
     db.settings.toArray(),
     db.routines.toArray(),
+    db.tasks.toArray(),
   ]);
-  return { app: 'sundial', format: 1, exportedAt: Date.now(), categories, activities, sessions, reviews, goals, settings, routines };
+  return { app: 'sundial', format: 1, exportedAt: Date.now(), categories, activities, sessions, reviews, goals, settings, routines, tasks };
 }
 
 /** Checks a file really is a Sundial backup before we use it. Throws a friendly message if not. */
@@ -52,13 +54,13 @@ export function parseBackup(text: string): Backup {
     }
   }
   // Older backups used fixed ids without "#"; rename them so they fit this version.
-  return renameFixedIds({ goals: [], settings: [], routines: [], ...b } as Backup);
+  return renameFixedIds({ goals: [], settings: [], routines: [], tasks: [], ...b } as Backup);
 }
 
 /** Replaces everything on this device with the backup. */
 export async function restoreBackup(b: Backup) {
-  await db.transaction('rw', [db.categories, db.activities, db.sessions, db.reviews, db.goals, db.settings, db.routines], async () => {
-    await Promise.all([db.categories.clear(), db.activities.clear(), db.sessions.clear(), db.reviews.clear(), db.goals.clear(), db.settings.clear(), db.routines.clear()]);
+  await db.transaction('rw', [db.categories, db.activities, db.sessions, db.reviews, db.goals, db.settings, db.routines, db.tasks], async () => {
+    await Promise.all([db.categories.clear(), db.activities.clear(), db.sessions.clear(), db.reviews.clear(), db.goals.clear(), db.settings.clear(), db.routines.clear(), db.tasks.clear()]);
     await db.categories.bulkAdd(b.categories);
     await db.activities.bulkAdd(b.activities);
     await db.sessions.bulkAdd(b.sessions);
@@ -66,6 +68,7 @@ export async function restoreBackup(b: Backup) {
     await db.goals.bulkAdd(b.goals);
     await db.settings.bulkAdd(b.settings);
     await db.routines.bulkAdd(b.routines);
+    await db.tasks.bulkAdd(b.tasks);
   });
 }
 
