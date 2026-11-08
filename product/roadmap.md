@@ -66,11 +66,23 @@ Build in this order. Check items off as they're done. Each version should be **u
 - [x] **Plan** tab placeholder (intentions, schedule, tasks & assignments: coming soon)
 - [ ] Build the Plan features (start with Today's intentions, research-ideas #2)
 
- (pulled forward at the owner's request)
+## Accounts & sync (pulled forward at the owner's request)
 - [x] Sync between devices with Dexie Cloud, email-code sign-in, works offline (see `product/accounts.md`)
 - [x] Offer to copy each device's pre-sync data; nothing deleted
 - [ ] Turn it on: create the sync database and add its address (README → "Accounts & sync")
 - [ ] Test with two real devices
+
+## Sun Check 2026-11-07 (3): To-do list (see `product/sun-checks/2026-11-07-todo.md`)
+- [x] "To do today" at the bottom of Today, plus a Later list
+- [x] Optional notes, due date, and only-during hours on tasks
+- [x] "Open right now" card while a task's hours are open
+- [x] Goodnight: Tomorrow / Later / Remove for unfinished tasks (no pile-ups)
+- [x] "Add to iPhone Calendar" setting, off by default
+- [ ] Steps checklist inside a task
+- [ ] Research follow-ups: see `research-ideas.md` section 13
+
+## Moving data between devices (2026-11-07)
+- [x] Copy / paste your data between phone and computer (shared clipboard). The pasted save wins; blocks on this device that fill its untracked time are kept. Preview before anything changes.
 
 ## The research plan (v6–v10)
 
@@ -170,15 +182,16 @@ _Why next: cheapest, highest-value changes. Mostly wording and small cards. Rese
 ## v8: Plan & reflect (the behavioral-activation loop)
 _Why: logging + rating + light planning is behavioral activation, a proven depression treatment (Ekers 2014). Sundial already does the logging. This adds the other two parts without a calendar. Research: `science.md` Part 4 and Part 5; `research-ideas.md` Part A and section 1._
 
-- [ ] **Today's intentions (1–3 small things)**
+- [ ] **Today's intentions (1–3 small things), built into the existing to-do list**
+  - _Note (2026-11-07): the Today tab already has a to-do list ("To do today" + Later, `tasks.ts` / `TodoList.tsx`). Intentions are **not a second list**. They're to-do items that can also be linked to an activity and given a rough time. One list, one goodnight step._
   - **You'll see:**
-    - After good morning, an optional card: "Anything you want to do today?" with "+ Plan something" and "Not today." Dismissing it hides it until tomorrow. You can also plan any time from the Now screen.
+    - After good morning, an optional card: "Anything you want to do today?" with "+ Plan something" and "Not today." Dismissing it hides it until tomorrow. You can also add any time from "To do today" on the Today tab.
     - Planning: pick an activity (the same search box as clocking in) and a rough time: **Early in my day / Middle / Later / Anytime**. The labels show the clock times they mean for you, e.g. "Middle (≈ 3–8pm)".
     - Optional extras, folded away: **"Set an exact time"** (for appointments and deadlines only) and **"What might get in the way?"** (an if-then note: "If I'm still in bed at 11, I'll do 10 minutes first").
-    - **Limit 3.** The 4th "+" is replaced by "That's plenty for one day 🙂".
-    - Chips on the Now screen show each intention: ○ planned, ◐ started, ✓ done.
+    - **Soft limit 3**, the same as the to-do list's (`research-ideas.md` 13d). Adding a 4th shows "That's a full day. Want to put some in Later?" No hard cap.
+    - In "To do today," linked items show ○ planned, ◐ started, ✓ done.
   - **How it works:**
-    - **New data table** `intentions`: activity, rough window (or exact time), optional note, when it was planned, and your end-of-day choice (done / let go / carried).
+    - **No new table:** add two optional fields to the existing `Task`: `activityId` (the linked activity) and a rough window (early / middle / later / anytime). An exact time can reuse the task's existing hours. Old tasks without these work exactly as now.
     - **Status is calculated:** if you log any time on that activity (or one of its sub-activities) that day, it shows ◐. You tap ✓ when it's done, or it auto-ticks if you logged at least the time you usually spend on it.
     - **Windows follow *your* day:** the waking day is split into thirds based on your usual wake time and day length, not the clock. So a 4pm wake-up still has an "early in my day."
     - The day an intention belongs to is worked out from when it was planned. No "day" is stored.
@@ -192,11 +205,11 @@ _Why: logging + rating + light planning is behavioral activation, a proven depre
 - [ ] **Intentions on the timeline**
   - **You'll see:** unfinished intentions show as a soft, dashed band over their window on today's timeline, next to what you actually did. Finished ones show as a small ✓ on the matching block.
   - **Why:** BA reviews "planned vs actual" daily (Veale 2008), and here it's shown, not judged.
-- [ ] **Goodnight: "Today's plans" step** (only if you planned something)
-  - **You'll see:** each intention with ✓ done / ◐ did some / "not today." "Not today" offers **Let it go** (default) or **Carry to tomorrow**.
+- [ ] **Goodnight: extend the existing to-do step** (built in Sun Check (3): Tomorrow / Later / Remove)
+  - **You'll see:** linked items also show ◐ "did some" when you logged time on them. Everything else stays as built: **Tomorrow / Later / Remove**, with **Later** pre-selected when 2+ are left.
   - **Rules:**
-    - An item can be carried **once**. After that it's "Let it go" or plan it fresh.
-    - Carried items count toward tomorrow's 3. Never a growing list, never a ✗.
+    - An item moved to Tomorrow **twice in a row** gets Later pre-selected next time, so nothing circles forever.
+    - Items moved to Tomorrow count toward tomorrow's soft limit of 3. Never a growing list, never a ✗.
   - **Why:** unfinished plans that pile up trigger the "what-the-hell" effect and hurt people who feel behind.
 - [ ] **"How did it feel?" ratings in goodnight**
   - **You'll see:** in the Mood/Energy step, a few of today's main activities (up to 3, longest first, never sleep). Each has two quick 3-point choices:

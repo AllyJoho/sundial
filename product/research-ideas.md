@@ -253,6 +253,63 @@ _From round 4 research (`science.md` → "Split sleep, long naps, and what count
 
 ---
 
+### 13. To-do list (round 5 research)
+_Research: `science.md` Part 8. These ideas build on the to-do list built 2026-11-07 (Sun Check "To-do list"):_
+- _"To do today" + a folded "Later" list_
+- _Notes, due date, and "only-during hours"_
+- _The "open now" card_
+- _Goodnight Tomorrow / Later / Remove, with Later pre-selected when 2+ tasks are left_
+- _Optional "Add to iPhone Calendar" (.ics), off by default_
+
+**What the research says about the current design:**
+- **Goodnight carry-over: right as built.** The research supports it: writing specific next steps at bedtime helped people fall asleep faster (Scullin 2018). Specific plans quiet the "unfinished task" nagging (Masicampo & Baumeister 2011). And not piling up tasks protects people who feel behind (Townsend & Liu; Dalton & Spiller).
+- **Notes field: right idea.** Its prompt could be more specific (see 13b).
+- **"Open now" card: right idea, but weak on its own.** Business-hours tasks are the *hardest* kind to remember, because they depend on you thinking to check. The card only helps when you happen to open Sundial, and sleep loss makes even noticing-but-not-acting more likely. The fix is to also tie each window to an **event** you'll run into anyway (13a).
+- **The .ics calendar option is the only thing that can remind you while Sundial is closed.** Reminders that arrive on their own are what work in real-life tests. It's fine to keep it off by default (the owner's choice), but it should be **offered at the moment it matters** (13a).
+
+#### 13a. Remembering during a window
+| Idea | Helpful | Evidence | Size | Verdict |
+|---|---|---|---|---|
+| **"When will you do it?"** One optional line when setting only-during hours, with chips from your routine ("After class," "At lunch," "Right after I wake up") plus a suggested exact time inside the window ("10:30"). Shown on the task and in the open-now card. | ⭐⭐⭐⭐ | Strong (if-then plans for remembering, Chen 2015 meta-analysis) + Good (date + time, Milkman 2011) | S | **Build next** |
+| **First open of the day shows today's windows:** "Today's windows: 📞 Call Verizon, 9–5." The first open after waking is the most dependable moment Sundial gets. Sleep-based day, so it works for nocturnal schedules too. | ⭐⭐⭐⭐ | Good (event cues beat time cues; focal cues) | S | **Build next** |
+| **Open-now card shows the action, not just the title:** "📞 Call Verizon · open until 5 PM · 2h 10m left · have: account #." It uses the task's first note line or "Have ready." | ⭐⭐⭐ | Some (reminders naming cue + action work best) | XS | **Build next** |
+| **Give the open-now card its own distinct look,** used for nothing else, and show at most 3 so they stand out. | ⭐⭐⭐ | Good (distinctive cues, Rogers & Milkman 2016) | XS | **Good candidate** |
+| **"Not now" on the open-now card** hides it for this window. After the window closes with the task undone: "Window closed. Next open Mon 9 AM." Never "missed." | ⭐⭐⭐ | — (principles) | S | **Good candidate** |
+| **Suggest the calendar reminder at the moment you add hours,** even with the setting off. A single quiet line: "Want iPhone Calendar to remind you? (Sundial can't send alerts by itself.)" Tapping it turns the setting on for that task. | ⭐⭐⭐⭐ | Good (people underuse reminders; reminders that arrive on their own work) | S | **Good candidate.** It changes the "off by default" decision slightly, so the owner should decide in a Sun Check. |
+| **Better calendar events:** alert at the planned time, or ~15 min after opening. Put the first step in the event text ("Call registrar · have student ID ready"). For repeating windows: "remind me each open day until done," with a note to delete the event when done. | ⭐⭐⭐ | Some (content matters; timing evidence thin) | S | **Good candidate** |
+| **Show after an activity ends:** "show this the first time I open Sundial after Class ends." The open-now card appears on that open. | ⭐⭐⭐ | Good (event-based cues) | M | **Later.** Still depends on opening the app. |
+| A distinct icon or emoji per task, used in both the calendar event and the card, as a memorable cue | ⭐⭐ | Some (Rogers & Milkman distinctiveness) | XS | **Idea pile** |
+
+#### 13b. Notes and next steps
+| Idea | Helpful | Evidence | Size | Verdict |
+|---|---|---|---|---|
+| **Reword the notes prompt around a concrete first step.** Replace "What exactly to do…" with two light labeled lines: **"First step:"** (e.g., "open email, search 'housing'") and **"Have ready:"** (number, ID, link). Both optional, with free text still allowed. | ⭐⭐⭐⭐ | Good (concrete thinking reduces procrastination, McCrea 2008; specific plans quiet unfinished goals, Masicampo 2011) | XS–S | **Build next** |
+| **"First step tomorrow?"** One optional tap in goodnight for items moved to Tomorrow. It fills "First step." | ⭐⭐⭐ | Good (Scullin 2018: specific bedtime to-dos, faster sleep) | S | **Good candidate** |
+| **"Where I left off:"** shown when you partly do a task (e.g., stop a timer on it, or tap "did some") | ⭐⭐⭐ | Some (resumption cues, Trafton 2003) | S | **Good candidate** |
+| **"If it gets stuck:"** an optional coping-plan line on Later items | ⭐⭐ | Good (Sniehotta coping planning), but more typing | XS | **Idea pile** |
+| Steps checklist inside a task (already planned "later") | ⭐⭐⭐ | Some (unpacking, Kruger & Evans) | M | **Later** (as already decided) |
+
+#### 13c. Dreaded small tasks (calls, emails)
+| Idea | Helpful | Evidence | Size | Verdict |
+|---|---|---|---|---|
+| **"Start 5 min" on any task:** a button that starts a timer logged to the task. Stopping after 5 minutes counts as "did some." | ⭐⭐⭐⭐ | Strong (the urge to finish what you've started held up in a 2025 meta-analysis) | S | **Build next** |
+| **📞 Call tasks get a "What I'll say" note,** shown big when you open the task to make the call, with the evidence-backed line: "Calls usually feel less awkward than people expect." | ⭐⭐⭐ | Good for the line (Kumar & Epley; Liu 2023). Expert for scripts. | S | **Good candidate.** Auto-detect "call" in the title, or use a 📞 type chip. |
+| **Optional "😬 dreading this" tag.** When on, it gently offers "First tiny step" and "Little reward after?", and suggests doing it early in *your* awake day. | ⭐⭐⭐ | Some (Garg 2025; temptation bundling) | S | **Good candidate** |
+| **"Calls & emails" batch:** group tasks tagged call or email into one suggested block ("3 calls, 2 emails, ~25 min"), shown as a single item | ⭐⭐⭐ | Good for email (Kushlev & Dunn 2015); extrapolated for calls | M | **Later** |
+| "No rush" tip when *you're* the sender (in the Tips page) | ⭐ | Good (Giurge & Bohns) | XS | **Idea pile** |
+| Saying "it won't be as bad as you think" for all tasks | 🚫 | Against for non-social tasks (Kaplan 2020) | — | **Don't build.** Only say it about calls and reaching out. |
+| Fake progress (pre-checked steps, head-start stamps) | 🚫 | Works (Kivetz 2006), but breaks "reflect reality" | — | **Don't build** |
+
+#### 13d. List length
+| Idea | Helpful | Evidence | Size | Verdict |
+|---|---|---|---|---|
+| **Soft limit of 3 on "To do today":** adding a 4th shows a quiet line, "That's a full day. Want to put some in Later?" with one-tap "Move to Later." No hard cap, no red. | ⭐⭐⭐⭐ | Good (Dalton & Spiller; Townsend & Liu); the number 3 is a synthesis, not tested | XS–S | **Build next** |
+| **Optional "⭐ main one":** pin one task as today's focus, shown first | ⭐⭐⭐ | Some (fewer goals plan better) | S | **Good candidate** |
+| **"Done today" stays visible with a count of what's *done*** ("✓ 3 done"), never "5 left." This mostly matches the current build (done items stay for the day); just avoid adding a "left" counter. | ⭐⭐⭐⭐ | Good (Koo & Fishbach: show progress when commitment is shaky; small wins) | XS | **Build next** (check the current wording) |
+| **"Fresh list?"** on Mondays or after a welcome-back: offer to move everything old to Later in one tap | ⭐⭐⭐ | Good (fresh start effect) | S | **Good candidate** |
+| **"Why this one?"** On Later items, an optional one-line payoff ("so I don't get charged a late fee"), shown when choosing what to do | ⭐⭐ | Some (Zhu et al. 2018: reminding people of the payoff helps them pick important over urgent) | S | **Idea pile** |
+| Countdowns, "overdue" counters, red badges | 🚫 | Against (urgency bias; shame) | — | **Don't build** |
+
 ## Part C: Silly and out-of-scope ideas (allowed here!)
 
 | Idea | Helpful | Size | Notes |

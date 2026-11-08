@@ -2,6 +2,7 @@
 //  - JSON backup: everything, can be restored on any device.
 //  - CSV: your time blocks as a spreadsheet (open in Numbers, Excel, Google Sheets).
 import { db } from './db';
+import { coveredWithin, mergeIntervals } from './days';
 import { renameFixedIds } from './ids';
 import type { Activity, Category, DayReview, Goal, Routine, Session, Settings, Task } from './types';
 
@@ -10,6 +11,8 @@ export interface Backup {
   /** Backup format version, so future versions can still read old backups. */
   format: 1;
   exportedAt: number;
+  /** Which kind of device made it ("iPhone", "Mac"…), for the paste preview. */
+  from?: string;
   categories: Category[];
   activities: Activity[];
   sessions: Session[];
@@ -144,4 +147,144 @@ export function markBackedUp() {
   } catch {
     /* ignore */
   }
+}
+
+// ---------------------------------------------------------------------------
+// Copy / paste between devices (shared clipboard, e.g. Apple's Universal Clipboard)
+// ---------------------------------------------------------------------------
+
+/** A rough name for this device, shown when the save is pasted on the other one. */
+export function deviceName(ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''): string {
+  if (/iPhone/.test(ua)) return 'iPhone';
+  if (/iPad/.test(ua)) return 'iPad';
+  if (/Android/.test(ua)) return 'Android phone';
+  if (/Macintosh|Mac OS X/.test(ua)) return 'Mac';
+  if (/Windows/.test(ua)) return 'Windows computer';
+  return 'other device';
+}
+
+const PREFIX = 'SUNDIAL1:';
+
+function toBase64(bytes: Uint8Array): string {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function fromBase64(b64: string): Uint8Array {
+  const s = atob(b64);
+  const out = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+  return out;
+}
+
+/** Turns a backup into one line of text to copy: compressed (several times smaller) when the browser can. */
+export async function encodeTransfer(b: Backup): Promise<string> {
+  const json = JSON.stringify(b);
+  if (typeof CompressionStream === 'undefined') return json;
+  const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'));
+  return PREFIX + toBase64(new Uint8Array(await new Response(stream).arrayBuffer()));
+}
+
+/**
+ * Reads pasted text (compressed or plain JSON) back into a checked backup. Throws a friendly message if it isn't one.
+ * Forgiving on purpose: phones sometimes add line breaks or invisible characters to long pastes, and a paste can land
+ * after old text in the box. So it looks for the LAST "SUNDIAL1:" anywhere and ignores everything that isn't data.
+ */
+export async function decodeTransfer(text: string): Promise<Backup> {
+  // Remove whitespace and invisible characters (zero-width spaces, byte-order marks). Base64 never contains them.
+  const squashed = text.replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, '');
+  const at = squashed.lastIndexOf(PREFIX);
+  if (at >= 0) {
+    const body = squashed.slice(at + PREFIX.length).match(/^[A-Za-z0-9+/=]+/)?.[0] ?? '';
+    let json: string;
+    try {
+      const stream = new Blob([fromBase64(body)]).stream().pipeThrough(new DecompressionStream('gzip'));
+      json = await new Response(stream).text();
+    } catch {
+      throw new Error("That doesn't look like a complete Sundial copy. Try copying again (part of it may have been cut off).");
+    }
+    return parseBackup(json);
+  }
+  // Plain backup JSON (from a backup file, or a browser without compression).
+  const t = text.replace(/[\u200B-\u200D\u2060\uFEFF]/g, '');
+  const open = t.indexOf('{');
+  const close = t.lastIndexOf('}');
+  if (open >= 0 && close > open) return parseBackup(t.slice(open, close + 1));
+  throw new Error("That isn't Sundial data. On your other device, tap \"Copy my data\" first, then paste here.");
+}
+
+/**
+ * Pasting a save from your other device (Sun Check decision, 2026-11-07): the pasted save wins.
+ * The only things kept from this device are time blocks that fill time the pasted save has as untracked
+ * (no overlap at all), plus the activities/categories those blocks need.
+ */
+export function mergeIncoming(local: Backup, incoming: Backup, now: number): { merged: Backup; rescued: Session[] } {
+  const incomingIds = new Set(incoming.sessions.map((s) => s.id));
+  const covered = mergeIntervals(incoming.sessions, now);
+  const incomingRunning = incoming.sessions.some((s) => s.end === null);
+  const rescued = local.sessions.filter(
+    (s) =>
+      !incomingIds.has(s.id) &&
+      !(s.end === null && incomingRunning) && // only one live timer
+      coveredWithin(covered, s.start, s.end ?? now) === 0,
+  );
+
+  // Bring along any activities (and their parents and categories) the rescued blocks need.
+  const actIds = new Set(incoming.activities.map((a) => a.id));
+  const catIds = new Set(incoming.categories.map((c) => c.id));
+  const localActs = new Map(local.activities.map((a) => [a.id, a]));
+  const extraActs: Activity[] = [];
+  const need = (id: string | null | undefined) => {
+    if (!id || actIds.has(id)) return;
+    const a = localActs.get(id);
+    if (!a) return;
+    actIds.add(id);
+    extraActs.push(a);
+    need(a.parentId);
+  };
+  rescued.forEach((s) => need(s.activityId));
+  const extraCats = local.categories.filter((c) => !catIds.has(c.id) && extraActs.some((a) => a.categoryId === c.id));
+
+  return {
+    merged: {
+      ...incoming,
+      sessions: [...incoming.sessions, ...rescued],
+      activities: [...incoming.activities, ...extraActs],
+      categories: [...incoming.categories, ...extraCats],
+    },
+    rescued,
+  };
+}
+
+/**
+ * Copies text to the clipboard. Uses the modern clipboard where allowed (https), and falls back to the
+ * older select-and-copy trick, which also works on http:// (like testing over home Wi-Fi).
+ * Must be called directly from a tap (iPhone only allows copying during the tap itself).
+ */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* fall back below */
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '0';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  let ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch {
+    ok = false;
+  }
+  ta.remove();
+  return ok;
 }

@@ -376,6 +376,64 @@ _Researched because of a real 4½-hour accidental nap. The decisions it led to a
 
 ---
 
+## Part 8: To-do lists: remembering, dreaded tasks, notes, list length (round 5)
+_Research follow-ups from Sun Check 2026-11-07 (3), "To-do list." Decisions are in `product/research-ideas.md` → section 13._
+
+### Remembering to do something during a window (like calling a business 9–5)
+- **Tasks tied to a time are the hardest kind to remember.** "Do it at 2pm" has nothing in your surroundings to remind you; you have to remember to keep checking. "Do it when X happens" gets prompted by X. ([Einstein, McDaniel et al. 1995](https://profiles.wustl.edu/en/publications/aging-and-prospective-memory-examining-the-influences-of-self-ini/)) _Good (lab)._ The research name for this is *prospective memory* (remembering to do things later).
+- **Cues work best when they're right in what you're already looking at.** A cue you see as part of what you're doing triggers the intention almost automatically. One you have to watch for takes effort. ([McDaniel & Einstein 2000](https://profiles.wustl.edu/en/publications/strategic-and-automatic-processes-in-prospective-memory-retrieval/)) _Theory with lab support._
+- **Forgetting to do things is common**, but "most everyday forgetting is this kind" isn't reliably supported. Diary studies disagree ([Laughland & Kvavilashvili](https://uhra.herts.ac.uk/id/eprint/14968/1/Method_Poster_final_23.05.14.pdf)). Don't put "most" in the app.
+- **Sleep loss makes it worse in a specific way.** After 24h awake, people **checked the clock just as often but still forgot to act**. Sleep loss seems to break the link between noticing and doing. ([Esposito et al. 2015, *Sleep*](https://pmc.ncbi.nlm.nih.gov/articles/PMC4813356); [Grundgeiger et al. 2014](https://vufind-test.katalog.k.utb.cz/SummonRecord/FETCH-LOGICAL-c337t-f7c54de24652e5315d6548c8e261d4c42c12c0885d8cd46664d35583cf8493c53)) _Some (small lab studies, total sleep loss only)._
+- **ADHD:** time-based remembering is consistently harder; event-based results are mixed ([review](https://pmc.ncbi.nlm.nih.gov/articles/PMC8199111)). _Review, no meta-analysis found._
+- **Reminders work, and people use them too little.** People who could set reminders followed through more. People also leaned on memory even when a reminder would have paid off ([Gilbert 2015](https://pubmed.ncbi.nlm.nih.gov/25404057/); [Gilbert et al. 2020](https://discovery-pp.ucl.ac.uk/10080846/1/optimal%20reminders.pdf); [review 2023](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9971128/)). _Good (lab + review)._ **Offloading only costs you if the reminder fails to show up.** Saving something can even help you remember the next thing ([Storm & Stone 2015](https://www.psychologicalscience.org/news/releases/saving-old-information-can-boost-memory-for-new-information.html)).
+- **Reminders that arrive on their own work in real life.** A reminder pager helped more than 80% of people with brain injuries do everyday tasks and keep appointments ([Wilson et al. 2001](https://jnnp.bmj.com/content/70/4/477.abstract)). _Good (RCT, 143 people, clinical group)._
+- **If-then plans improve remembering to act** (medium effect, larger when you both say *and* picture the plan) ([Chen et al. 2015 meta-analysis](https://doi.org/10.1016/j.psychres.2015.01.011); [Chasteen et al. 2001](https://scilit.com/publications/d9c47992ab164ca20ca4d6417f03b4b2)). _Strong._ For behavior in general, the effect is real but more modest than once claimed (Sheeran et al. 2024).
+- **Pairing a task with a distinctive cue you'll run into raised follow-through from 42% to 74%** (a toy elephant in one study). The cue has to *stand out*, and people undervalue this trick ([Rogers & Milkman 2016, *Psychological Science*](https://scholar.harvard.edu/files/todd_rogers/files/reminders_through_association_2016.pdf)). _Good (6 lab and field experiments)._
+- **Write down a date *and time*, not just a date.** It raised flu-shot rates, and the effect was biggest when the clinic was open only one day, a narrow window like business hours ([Milkman et al. 2011](https://nber.org/system/files/working_papers/w17183/w17183.pdf)). _Good (field RCT)._
+- **What a reminder says may matter more than when it arrives.** The best reminders name both the cue and the action. No field study has tested "right before" vs "earlier." _Some._
+- **An in-app card only works when you open the app.** That's the same self-started checking that makes time-based tasks hard. People pick up their phones about 75–110 times a day (company data, not peer-reviewed), but that doesn't mean they open Sundial.
+
+### What gets dreaded small tasks done (calls, emails, admin)
+- **The more unpleasant a task feels, the more it gets put off.** Boredom, frustration and resentment are the main drivers, and task unpleasantness is one of the strongest predictors of procrastination (Blunt & Pychyl 2000 [venue unverified]; Steel 2007). _Strong (meta-analysis)._
+- **A dreaded task feels worst while you're avoiding it.** In a study that paged 45 students through the week, avoided tasks were rated very stressful ([Pychyl et al. 2000](https://www.psychologytoday.com/gb/blog/dont-delay/200803/just-get-started/amp)). The idea that it feels much better once started comes from the author's blog. _Some._
+- **⚠️ "It won't be as bad as you think" is *not* supported for ordinary chores and studying.** Across 767 work tasks and 185 students studying for exams, people predicted their bad feelings about right ([Kaplan et al. 2020, *PLOS ONE*](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0235973)). _Good (observational)._ The app shouldn't promise it.
+- **✅ For *social* tasks, people do expect worse than they get.**
+  - People expected a **phone call** to be more awkward than texting. Calls built stronger connection with no extra awkwardness ([Kumar & Epley](https://news.mccombs.utexas.edu/research/when-we-fear-an-awkward-phone-call-we-often-turn-to-text/)).
+  - People underestimate how much others **appreciate being reached out to**, especially weak ties ([Liu et al. 2023, 5,900+ people](https://www.psypost.org/study-identifies-a-robust-tendency-to-underestimate-how-much-others-appreciate-being-reached-out-to); [independent replication](https://replications.clearerthinking.org/?p=1121)).
+  - Talking to strangers went better than predicted ([Epley & Schroeder 2014](https://faculty.haas.berkeley.edu/jschroeder/Publications/Epley%26Schroeder2014.pdf)).
+  - _Good (multiple experiments)._
+- **Phone anxiety is real, but the research is thin.** People with phone anxiety use more texting and digital media, which suggests texting can be a way of avoiding the anxiety ([Kim & Oh 2023](https://ma.x-mol.com/paper/1675187088392962048)). Popular stats like "60% of Gen Z dread calls" come from non-academic surveys.
+- **Once you start, you tend to want to finish.** The urge to go back to unfinished tasks (the Ovsiankina effect) held up in a 2025 meta-analysis ([Ghibellini & Meier](https://ideas.repec.org/a/pal/palcom/v12y2025i1d10.1057_s41599-025-05000-w.html)). This is the best evidence for "just start." _Strong._
+- **A tiny first step plus a small reward.** A 2-minute exercise (name the feeling, pick a tiny first step, pick a small reward) improved mood and intention to act the next day ([Garg, Shelat & Schooler 2025](https://www.universityofcalifornia.edu/news/two-minute-fix-procrastination)). _Some (one study, self-reported intentions, possible conflict of interest)._
+- **Thinking about a task concretely reduces procrastination.** Concretely framed questionnaires came back sooner than abstractly framed ones ([McCrea et al. 2008](https://www.psychologicalscience.org/journals/psychological-science/j.1467-9280.2008.02240.x/)). _Some._
+- **Batch email.** Checking 3 times a day lowered stress with no loss in how productive people felt ([Kushlev & Dunn 2015](https://www.interruptions.net/literature/Kushlev-ComputHumBehav15.pdf)). _Good (RCT, 124 people)._ Batching calls into one "calls & emails" window is a reasonable extension, but untested.
+- **Email recipients feel more urgency than senders intend.** A "no rush" line reduces it ([Giurge & Bohns 2021](https://lbsresearch.london.edu/id/eprint/1928)). _Good (8 preregistered studies)._
+- **Gradually facing a feared thing** works for social anxiety (meta-analysis, [link](https://pmc.ncbi.nlm.nih.gov/articles/PMC6746888)). "Make one easy call first" is a reasonable mini-version, but extrapolated. **Writing a call script in advance has no studies.** It's sensible expert advice.
+- **Timing:** you do best at your body clock's peak ([May, Hasher & Healey 2023](https://blogs.cofc.edu/mayc/files/2023/06/May-Hasher-Healey-2023.pdf)). For a night owl, that isn't necessarily the morning.
+- **The "two-minute rule"** (if it takes under 2 minutes, do it now) and **GTD's "next action"** are untested expert advice ([Heylighen & Vidal 2008](https://web-archive.southampton.ac.uk/cogprints.org/6289/)).
+
+### Do written notes and next steps help tomorrow?
+- **Writing a specific plan for an unfinished goal stopped it from nagging at you,** with the intrusive thoughts and lower performance on other work both gone, even without doing the task ([Masicampo & Baumeister 2011](https://pubmed.ncbi.nlm.nih.gov/21688924/)). _Some (one lab group; no replication found either way)._
+- **Writing a *specific* to-do list at bedtime helped people fall asleep faster** than writing about what they'd already done (about 9 minutes faster in a sleep lab). The more specific the list, the faster they fell asleep ([Scullin et al. 2018](https://www.sciencedaily.com/releases/2018/01/180111224021.htm)). _Some (lab RCT, ~57 people)._ → Goodnight's Tomorrow/Later step is sleep-friendly.
+- **Unfinished tasks are linked to worse sleep through rumination** (going over and over them) ([Syrek et al. 2017](https://pubmed.ncbi.nlm.nih.gov/27101340/)). _Observational._
+- **Listing a task's parts makes time estimates more realistic** ([Kruger & Evans 2004](https://core.ac.uk/download/20665233.pdf)). _Some (lab)._
+- **Two kinds of plans:** "when, where, how" helps you get started, and "if X gets in the way, then Y" helps you keep going ([Sniehotta et al.](https://eprints.ncl.ac.uk/155807)). _Good._
+- **A note on where you left off makes it faster to pick a task back up.** People warned before an interruption prepared, and resumed faster ([Trafton et al. 2003](https://interruptions.net/literature/Trafton-IJHCS03.pdf)). _Some (lab)._
+- **"Stop mid-sentence like Hemingway"** has thin support (one small study). Don't promise it.
+
+### How many items before a to-do list backfires?
+- **Specific planning helped people with 1 goal but not 6.** Planning made the size of the full list obvious ([Dalton & Spiller 2012](https://sciencedaily.com/releases/2012/05/120516152448.htm)). _Good (lab + field)._
+- **Detailed planning made people who felt behind *more* distressed and less self-controlled** ([Townsend & Liu 2012](https://econpapers.repec.org/RePEc:oup:jconrs:doi:10.1086/665053)). _Good._
+- **Too many choices hurts only when the choice is hard and you're unsure what you want** ([Chernev et al. 2015](https://www.kellogg.northwestern.edu/faculty/research/detail/2015/when-product-assortment-leads-to-choice-overload-a-conceptual)). "What do I do first?" on a long list is exactly that.
+- **Working memory holds about 4 items** ([Cowan 2001](https://pubmed.ncbi.nlm.nih.gov/11515286/)). That limits what you hold in mind at once, not what a written list holds, so it's only a loose analogy.
+- **Show what's done when motivation is shaky.** When commitment is shaky, seeing what's already done motivates more. When commitment is firm, seeing what's left does ([Koo & Fishbach 2008](https://core.ac.uk/download/158313722.pdf)). _Good (lab)._
+- **Small wins:** small progress was the biggest everyday boost to mood and motivation (Amabile & Kramer). No study has tested "done lists" themselves.
+- **"Urgent beats important":** people pick urgent-feeling tasks over more important ones, and reminding them of each task's payoff helps ([Zhu, Yang & Hsee 2018](https://hub.jhu.edu/2018/05/31/meeting-deadlines-time-management-behaviors)). → No countdowns.
+- **Myths:** "Ivy Lee's 6-item list" (no primary source), and "41% of to-dos never get done" (one company's app data).
+- **Practical limit (our synthesis, not a tested number): 1–3 main items** for someone who feels behind, with everything else in Later. Based on Dalton & Spiller, Townsend & Liu, and choice overload.
+
+---
+
 ## What actually works outside any app
 
 A practical, honest list. Pick one or two to try; you don't need all of them.
@@ -556,6 +614,14 @@ Each one is checked against the sources above. Keep the citation with the tip.
 49. Teens who split the same 6.5 hours into a night plus a nap were as alert as or more alert than those who slept it in one go. _(Lo et al. 2019)_
 50. Madagascar farmers napped on 89% of days. _(Samson et al. 2017)_
 51. Hunter-gatherers fell asleep about 3 hours after sunset, not at dusk. _(Yetish et al. 2015)_
+52. A toy elephant placed where people would see it raised follow-through on a small task from 42% to 74%. _(Rogers & Milkman 2016)_
+53. Writing a specific to-do list at bedtime helped people fall asleep faster than writing about what they'd already done. _(Scullin et al. 2018)_
+54. Sleep-deprived people checked the clock just as often but still forgot to do the thing. _(Esposito et al. 2015)_
+55. People expect phone calls to be more awkward than texting. They're not, and they feel more connecting. _(Kumar & Epley)_
+56. People underestimate how much others appreciate hearing from them. _(Liu et al. 2023)_
+57. Planning in detail helped people with one goal, but not people juggling six. _(Dalton & Spiller 2012)_
+58. "Pre-crastination": most people picked up the *nearer* of two buckets and carried it farther, just to get a step done sooner. _(Rosenbaum et al. 2014)_
+59. A coffee card with 2 of 12 stamps already filled was finished faster than a blank 10-stamp card. _(Kivetz et al. 2006)_
 
 ---
 
@@ -589,6 +655,7 @@ Each one is checked against the sources above. Keep the citation with the tip.
 |---|---|---|---|
 | 1 | Nov 2026 | Sleep; dopamine & phones; self-tracking & streaks; time management & procrastination | 4 parallel research passes, ~150 searches |
 | 2 | Nov 2026 | Behavioral activation & calendars; iPhone feasibility; feedback/social/nudges | 3 passes. Hit the session's web search limit partway through |
+| 5 | Nov 2026 | To-do list: remembering during a window, dreaded tasks & phone anxiety, notes/next steps, list length | 2 passes, ~55 searches, no limit hit |
 | 4 | Nov 2026 | Split/segmented sleep, long naps, how "main sleep" is defined | ~35 searches, no limit hit |
 | 3 | Nov 2026 | Open questions (bedtime reminders, pets, co-working, days-needed, sleep restriction safety, Deci, Hawthorne); fact-check of every unverified claim | Search limit hit almost immediately. Verified by opening primary sources directly where possible |
 

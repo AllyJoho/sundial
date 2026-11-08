@@ -474,3 +474,7 @@ textarea { font: inherit; font-size: 16px; width: 100%; padding: 12px; border: 1
 .day-toggle.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .time-stepper { display: flex; align-items: center; gap: 10px; }
 .time-stepper > .muted { width: 44px; }
+
+/* --- Copy / paste between devices --- */
+.transfer-preview p { margin: 4px 0; }
+.transfer-preview .sheet-actions { margin-top: 8px; }

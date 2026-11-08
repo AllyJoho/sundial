@@ -1,6 +1,7 @@
 // Export and restore your data.
 import { useState } from 'react';
 import { lastBackupAt, makeBackup, markBackedUp, parseBackup, restoreBackup, saveFile, sessionsToCsv } from '../backup';
+import { DeviceTransfer } from '../components/DeviceTransfer';
 import { formatDuration } from '../format';
 
 export function BackupPage() {
@@ -51,6 +52,7 @@ export function BackupPage() {
         Everything lives only on this phone. A backup is one file you can keep in Files, iCloud Drive, or email to yourself,
         and restore any time.
       </p>
+      <DeviceTransfer />
       <section className="card">
         <h3 className="card-title">Back up</h3>
         <p className="muted small">

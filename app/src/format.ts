@@ -59,6 +59,7 @@ export function dayLabel(dayStart: number, stepsBack: number): string {
 /** "5m ago", "3h ago", "2 days ago": rough and friendly. */
 export function formatAgo(ms: number): string {
   const min = Math.max(0, Math.round(ms / 60_000));
+  if (min < 1) return 'just now';
   if (min < 60) return `${min}m ago`;
   const h = Math.round(min / 60);
   if (h < 24) return `${h}h ago`;

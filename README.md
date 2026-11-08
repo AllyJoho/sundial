@@ -28,8 +28,13 @@ npm run build      # makes the final version in app/dist (what gets hosted)
 `npm run dev` prints a "Network" address like `http://192.168.x.x:5173`. Open that in Safari on your phone.
 Offline mode and "real" installing only fully work once it's hosted on `https://`.
 
-### Installing on iPhone (once hosted)
-Open the site in Safari → Share → **Add to Home Screen**.
+### Hosting (GitHub Pages)
+Live at **https://allyjoho.github.io/sundial/**. Every push to `main` runs the tests, builds, and publishes
+automatically (`.github/workflows/deploy.yml`). Watch it in the repo's **Actions** tab; a red ✗ means the
+tests or build failed and the old version stays up.
+
+### Installing on iPhone
+Open https://allyjoho.github.io/sundial/ in Safari → Share → **Add to Home Screen**.
 
 ## Accounts & sync (optional)
 Sync keeps your phone and computer the same, using [Dexie Cloud](https://dexie.org/cloud). It's **off** until you do these steps once. Why this option: `product/accounts.md`.
